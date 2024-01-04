@@ -1,4 +1,5 @@
-﻿using AdventOfCode2023.Helpers;
+using AdventOfCode2023.Helpers;
+using System.Diagnostics;
 
 namespace AdventOfCode2023.Days;
 
@@ -61,25 +62,38 @@ public abstract class Day14
             if (inputLine[i] == 'O')
                 currentNumRocks++;
             
-            if (inputLine[i] == '#' || i == inputLine.Length - 1)
+            if (inputLine[i] == '#')
             {
                 outputLine += new string(Enumerable.Repeat('.', i - (currentNumRocks + indexOfCurrentStartRock)).ToArray());
                 outputLine += new string (Enumerable.Repeat('O', currentNumRocks).ToArray());
-                if (inputLine[i] == '#')
-                    outputLine += '#';
+                outputLine += '#';
 
                 currentNumRocks = 0;
                 indexOfCurrentStartRock = i + 1;
             }
+
+            if (i == inputLine.Length - 1)
+            {
+                // We've reached the end - add remaining spaces and rocks
+                outputLine += new string(Enumerable.Repeat('.', inputLine.Length - (currentNumRocks + indexOfCurrentStartRock)).ToArray());
+                outputLine += new string(Enumerable.Repeat('O', currentNumRocks).ToArray());
+            }
         }
+
+        if (outputLine.Length != inputLine.Length)
+            throw new Exception("Output line length does not match input line length");
 
         return outputLine;
     }
 
     public static int Part2(List<string> input)
     {
-        const int CYCLE_COUNT = 100;
+        // Too high: 108098
+
+
+        const int CYCLE_COUNT = 1_000_000_000;
         var grid = input;
+        var hashMap = new Dictionary<int, Info>();
 
         for (int i = 0; i < CYCLE_COUNT; i++)
         {
@@ -89,10 +103,47 @@ public abstract class Day14
                 var columns = Enumerable.Range(0, grid[0].Length).Select(x => string.Join("", grid.Select(row => row[x]).Reverse())).ToList();
                 grid = columns.Select(GetOutputLine).ToList();
             }
+
+            var hash = string.Join("", grid).GetHashCode();
+            if (hashMap.ContainsKey(hash))
+            {
+                // So, work out the original occurance
+                var cycleNum = hashMap[hash].CycleNum;
+                var cycleDiff = i - cycleNum;
+
+                // Workout num of steps left
+                var stepsLeft = (CYCLE_COUNT - 1) - i;
+                var cycleIndex = stepsLeft % cycleDiff;
+
+                // Now, we need to find the cycleNum that matches the cycleIndex
+                var hello = cycleNum + cycleIndex;
+
+                var loadAmount = hashMap.First(x => x.Value.CycleNum == hello).Value.LoadAmount;
+                return loadAmount;
+            }
+
+            var columnsHello = Enumerable.Range(0, grid[0].Length).Select(x => string.Join("", grid.Select(row => row[x]).Reverse())).ToList();
+
+            hashMap.Add(hash, new Info {
+                CycleNum = i,
+                LoadAmount = columnsHello.Sum(GetLoadPart2)
+            });
         }
         return 0;
     }
 
+    private static int GetLoadPart2(string inputColumn)
+    {
+        return inputColumn.Select((x, ind) => x == 'O' ? ind + 1 : 0).Sum();
+    }
+
+    [DebuggerDisplay("CycleNum={CycleNum}, LoadAmount={LoadAmount}")]
+    private class Info
+    {
+        public int CycleNum { get; set; }
+        public int LoadAmount { get; set; }
+    }
+
     private static List<string> GetSeparatedInputFromFile() =>
-        FileInputHelper.GetStringListFromFile("Day14_Test.txt");
+        FileInputHelper.GetStringListFromFile("Day14.txt");
 }
