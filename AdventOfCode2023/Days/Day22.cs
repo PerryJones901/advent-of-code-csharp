@@ -3,6 +3,7 @@ using System.Diagnostics;
 
 namespace AdventOfCode2023.Days;
 
+// ---- WIP ----
 public abstract class Day22
 {
     public static int Part1Answer() =>
@@ -14,117 +15,61 @@ public abstract class Day22
     public static int Part1(List<string> input)
     {
         var allBricks = GetBricks(input);
-        var bricksDict = allBricks
-            .GroupBy(x => x.Z)
-            .OrderBy(x => x.Key)
-            .ToDictionary(
-                x => x.Key, 
-                x => x.ToList()
-            );
+        var brickLevels = GetRestedBrickLevels(allBricks);
 
-        bool hasBrickMoved;
-        var newBricksDict = bricksDict.ToDictionary(
-            x => x.Key,
-            x => x.Value.Select(x => x).ToList()
-        );
+        return brickLevels
+            .SelectMany(x => x.Value)
+            .Count(x => !x.IsUnremovable);
+    }
 
-        do
+    public static int Part2(List<string> input)
+    {
+        var allBricks = GetBricks(input);
+        var brickLevels = GetRestedBrickLevels(allBricks);
+
+        var sum = 0;
+
+        foreach (var brick in allBricks)
         {
-            hasBrickMoved = false;
-            var dict = new Dictionary<int, List<Brick>>();
+            allBricks.ForEach(x => x.Marked = false);
 
-            foreach (var (zCoord, bricks) in newBricksDict)
+            brick.Marked = true;
+            var changeOccurred = false;
+            do
             {
-                // If Z = 1, blocks are at rest
-                if (zCoord == 1)
+                changeOccurred = false;
+                var bricksToRemove = allBricks
+                    .Where(x => !x.Marked)
+                    .Where(x => 
+                        x.DependsOnBricks.Count > 0
+                        && x.DependsOnBricks.All(x => x.Marked)
+                    ).ToList();
+                if (bricksToRemove.Count > 0)
                 {
-                    foreach (var brick in bricks)
-                        brick.IsAtRest = true;
-
-                    if (!dict.ContainsKey(zCoord))
-                        dict.Add(zCoord, new List<Brick>());
-
-                    dict[zCoord].AddRange(bricks);
-                    continue;
+                    bricksToRemove.ForEach(x => x.Marked = true);
+                    changeOccurred = true;
                 }
+            } while (changeOccurred);
 
-                // For Z-bricks, if their edge is at level 1, they are at rest
-                foreach (var brick in bricks.Where(x => x.Direction == Direction.Z && x.Z + x.Displacement == 1))
-                    brick.IsAtRest = true;
+            var markedCount = allBricks.Count(x => x.Marked);
+            Console.WriteLine(markedCount - 1);
+            sum += (markedCount - 1);
+        }
 
-                // add bricks at rest now
-                var bricksAtRest = bricks.Where(x => x.IsAtRest).ToList();
-                if (bricksAtRest.Any())
-                {
-                    if (!dict.ContainsKey(zCoord))
-                        dict.Add(zCoord, new List<Brick>());
-                    dict[zCoord].AddRange(bricksAtRest);
-                }
+        return sum;
+    }
 
-                // now deal with unrested bricks, that could potentially be at rest now
-                var bricksNotAtRest = bricks.Where(x => !x.IsAtRest).ToList();
+    private static void DisintegrateBrick(Brick brick, List<Brick> allBricks)
+    {
+        // Brick has been vaporised:
+        brick.Marked = true;
 
-                foreach (var brick in bricksNotAtRest)
-                {
-                    // Find all the bricks at rest 1 level beneath this brick
-                    var zValueOneBelowBrick = brick.Direction == Direction.Z
-                        ? zCoord + brick.Displacement - 1
-                        : zCoord - 1;
-
-                    var bricksAtOneBelow = (newBricksDict.ContainsKey(zValueOneBelowBrick)
-                        ? newBricksDict[zValueOneBelowBrick]
-                        : new List<Brick>()).ToList();
-                    var bricksAtRestOneBelow = bricksAtOneBelow
-                        .Where(x => x.IsAtRest)
-                        .ToList();
-
-                    // Now, go through each brick at rest and see if it's in the way
-                    Brick? lastBrickUnderneath = null;
-                    int bricksUnderneathCount = 0;
-                    foreach (var restedBrick in bricksAtRestOneBelow)
-                    {
-                        if (BricksAreTouching(brick, restedBrick))
-                        {
-                            bricksUnderneathCount++;
-                            brick.IsAtRest = true;
-                            lastBrickUnderneath = restedBrick;
-
-                            // Now, do not break, as we want all the bricks at rest to be marked
-                            // break;
-                        }
-                    }
-
-                    if (lastBrickUnderneath != null && bricksUnderneathCount == 1)
-                        // We cannot remove this brick underneath
-                        lastBrickUnderneath.IsUnremovable = true;
-
-                    if (!brick.IsAtRest)
-                        hasBrickMoved = true;
-                }
-
-                // Now, the bricks not originally at rest, but now at rest, need to be added to the dictionary
-                var bricksNowAtRest = bricksNotAtRest.Where(x => x.IsAtRest).ToList();
-                var bricksStillNotAtRest = bricksNotAtRest.Where(x => !x.IsAtRest).ToList();
-
-                if (bricksNowAtRest.Any())
-                {
-                    if (!dict.ContainsKey(zCoord))
-                        dict.Add(zCoord, new List<Brick>());
-                    dict[zCoord].AddRange(bricksNowAtRest);
-                }
-                if (bricksStillNotAtRest.Any())
-                {
-                    var newZCoord = zCoord - 1;
-                    if (!dict.ContainsKey(newZCoord))
-                        dict.Add(newZCoord, new List<Brick>());
-                    dict[newZCoord].AddRange(bricksStillNotAtRest);
-                }
-            }
-
-            newBricksDict = dict.OrderBy(x => x.Key).ToDictionary(x => x.Key, x => x.Value);
-        } while(hasBrickMoved);
-
-        return newBricksDict.SelectMany(x => x.Value).Count(x => !x.IsUnremovable);
+        foreach (var depBrick in brick.DependentBricks)
+        {
+            // Now, dependent bricks will only disintegrate if all the bricks they lie on are ALSO disintegrated
+            if (depBrick.DependsOnBricks.All(x => x.Marked))
+                DisintegrateBrick(depBrick, allBricks);
+        }
     }
 
     private static List<Brick> GetBricks(List<string> input)
@@ -203,6 +148,127 @@ public abstract class Day22
         }).ToList();
     }
 
+    private static Dictionary<int, List<Brick>> GetRestedBrickLevels(List<Brick> allBricks)
+    {
+        var bricksDict = allBricks
+            .GroupBy(x => x.Z)
+            .OrderBy(x => x.Key)
+            .ToDictionary(
+                x => x.Key,
+                x => x.ToList()
+            );
+
+        bool hasBrickMoved;
+        var newBricksDict = bricksDict.ToDictionary(
+            x => x.Key,
+            x => x.Value.Select(x => x).ToList()
+        );
+
+        do
+        {
+            hasBrickMoved = false;
+            var dict = new Dictionary<int, List<Brick>>();
+
+            foreach (var (zCoord, bricks) in newBricksDict)
+            {
+                // If Z = 1, blocks are at rest
+                if (zCoord == 1)
+                {
+                    foreach (var brick in bricks)
+                    {
+                        brick.IsAtRest = true;
+                    }
+
+                    if (!dict.ContainsKey(zCoord))
+                        dict.Add(zCoord, new List<Brick>());
+
+                    dict[zCoord].AddRange(bricks);
+
+                    continue;
+                }
+
+                // For Z-bricks, if their edge is at level 1, they are at rest
+                foreach (var brick in bricks.Where(x => x.Direction == Direction.Z && x.Z + x.Displacement == 1))
+                    brick.IsAtRest = true;
+
+                // add bricks at rest now
+                var bricksAtRest = bricks.Where(x => x.IsAtRest).ToList();
+                if (bricksAtRest.Any())
+                {
+                    if (!dict.ContainsKey(zCoord))
+                        dict.Add(zCoord, new List<Brick>());
+                    dict[zCoord].AddRange(bricksAtRest);
+                }
+
+                // now deal with unrested bricks, that could potentially be at rest now
+                var bricksNotAtRest = bricks.Where(x => !x.IsAtRest).ToList();
+
+                foreach (var brick in bricksNotAtRest)
+                {
+                    // Find all the bricks at rest 1 level beneath this brick
+                    var zValueOneBelowBrick = brick.Direction == Direction.Z
+                        ? zCoord + brick.Displacement - 1
+                        : zCoord - 1;
+
+                    var bricksAtOneBelow = (newBricksDict.ContainsKey(zValueOneBelowBrick)
+                        ? newBricksDict[zValueOneBelowBrick]
+                        : new List<Brick>()).ToList();
+                    var bricksAtRestOneBelow = bricksAtOneBelow
+                        .Where(x => x.IsAtRest)
+                        .ToList();
+
+                    // Now, go through each brick at rest and see if it's in the way
+                    Brick? lastBrickUnderneath = null;
+                    int bricksUnderneathCount = 0;
+                    foreach (var restedBrick in bricksAtRestOneBelow)
+                    {
+                        if (BricksAreTouching(brick, restedBrick))
+                        {
+                            bricksUnderneathCount++;
+                            brick.IsAtRest = true;
+                            lastBrickUnderneath = restedBrick;
+                            // Now, brick depends on rested brick
+                            restedBrick.DependentBricks.Add(brick);
+                            brick.DependsOnBricks.Add(restedBrick);
+
+                            // Now, do not break, as we want all the bricks at rest to be marked
+                            // break;
+                        }
+                    }
+
+                    if (lastBrickUnderneath != null && bricksUnderneathCount == 1)
+                        // We cannot remove this brick underneath
+                        lastBrickUnderneath.IsUnremovable = true;
+
+                    if (!brick.IsAtRest)
+                        hasBrickMoved = true;
+                }
+
+                // Now, the bricks not originally at rest, but now at rest, need to be added to the dictionary
+                var bricksNowAtRest = bricksNotAtRest.Where(x => x.IsAtRest).ToList();
+                var bricksStillNotAtRest = bricksNotAtRest.Where(x => !x.IsAtRest).ToList();
+
+                if (bricksNowAtRest.Any())
+                {
+                    if (!dict.ContainsKey(zCoord))
+                        dict.Add(zCoord, new List<Brick>());
+                    dict[zCoord].AddRange(bricksNowAtRest);
+                }
+                if (bricksStillNotAtRest.Any())
+                {
+                    var newZCoord = zCoord - 1;
+                    if (!dict.ContainsKey(newZCoord))
+                        dict.Add(newZCoord, new List<Brick>());
+                    dict[newZCoord].AddRange(bricksStillNotAtRest);
+                }
+            }
+
+            newBricksDict = dict.OrderBy(x => x.Key).ToDictionary(x => x.Key, x => x.Value);
+        } while (hasBrickMoved);
+
+        return newBricksDict;
+    }
+
     // We assume that they differ by 1 in the Z direction
     private static bool BricksAreTouching(Brick firstBrick, Brick secondBrick)
     {
@@ -229,10 +295,6 @@ public abstract class Day22
         return isCrossingX && isCrossingY;
     }
 
-    public static int Part2(List<string> input)
-    {
-        return 0;
-    }
 
     [DebuggerDisplay("X={X},Y={Y},Z={Z},Direction={Direction},Dis={Displacement},Rest={IsAtRest},Removable={IsUnremovable}")]
     private class Brick
@@ -244,6 +306,16 @@ public abstract class Day22
         public int Displacement { get; set; }
         public bool IsAtRest { get; set; } = false;
         public bool IsUnremovable { get; set; } = false;
+        public List<Brick> DependentBricks { get; set; } = new List<Brick>();
+        public List<Brick> DependsOnBricks { get; set; } = new List<Brick>();
+        public bool Marked { get; set; } = false;
+    }
+
+    private class Node
+    {
+        public Node? Parent { get; set; } = null;
+        public List<Node> Children { get; set; } = new();
+        public Brick? Value { get; set; } // Only null for ground.
     }
 
     private enum Direction
