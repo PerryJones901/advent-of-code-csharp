@@ -1,10 +1,10 @@
 ﻿using System.Text.RegularExpressions;
 
-namespace AdventOfCode2023.Helpers
+namespace AdventOfCodeCommon
 {
     public class StringHelper
     {
-        const string LINE_SEPARATOR = "\r\n";
+        public const string LINE_SEPARATOR = "\r\n";
 
         public static List<List<string>> GetRegexCapturesFromInput(
             string input,

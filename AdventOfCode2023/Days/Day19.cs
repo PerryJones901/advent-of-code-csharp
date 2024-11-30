@@ -1,4 +1,5 @@
 ﻿using AdventOfCode2023.Helpers;
+using AdventOfCodeCommon;
 
 namespace AdventOfCode2023.Days;
 
