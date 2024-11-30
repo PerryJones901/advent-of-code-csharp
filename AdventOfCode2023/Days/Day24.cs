@@ -1,4 +1,5 @@
 ﻿using AdventOfCode2023.Helpers;
+using AdventOfCodeCommon.Vectors;
 using System.Diagnostics;
 
 namespace AdventOfCode2023.Days;
@@ -146,62 +147,6 @@ public abstract class Day24
     {
         public Vector3Double Position { get; set; } = new Vector3Double();
         public Vector3Double Velocity { get; set; } = new Vector3Double();
-    }
-
-    [DebuggerDisplay("X={X}, Y={Y}, Z={Z}")]
-    private class Vector3
-    {
-        public long X { get; set; }
-        public long Y { get; set; }
-        public long Z { get; set; }
-
-        public Vector3 Cross(Vector3 vector)
-        {
-            return new Vector3
-            {
-                X = Y * vector.Z - Z * vector.Y,
-                Y = Z * vector.X - X * vector.Z,
-                Z = X * vector.Y - Y * vector.X,
-            };
-        }
-
-        public long Dot(Vector3 vector)
-            => X * vector.X + Y * vector.Y + Z * vector.Z;
-
-        public static Vector3 operator +(Vector3 a, Vector3 b) => new()
-        {
-            X = a.X + b.X,
-            Y = a.Y + b.Y,
-            Z = a.Z + b.Z,
-        };
-
-        public static Vector3 operator -(Vector3 a, Vector3 b) => new()
-        {
-            X = a.X - b.X,
-            Y = a.Y - b.Y,
-            Z = a.Z - b.Z,
-        };
-
-        public static Vector3 operator *(long a, Vector3 b) => new()
-        {
-            X = a * b.X,
-            Y = a * b.Y,
-            Z = a * b.Z,
-        };
-
-        public static Vector3 operator *(Vector3 a, long b) => new()
-        {
-            X = a.X * b,
-            Y = a.Y * b,
-            Z = a.Z * b,
-        };
-
-        public static Vector3 operator /(Vector3 a, long b) => new()
-        {
-            X = a.X / b,
-            Y = a.Y / b,
-            Z = a.Z / b,
-        };
     }
 
     [DebuggerDisplay("X={X}, Y={Y}, Z={Z}")]
