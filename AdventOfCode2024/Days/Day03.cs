@@ -8,14 +8,14 @@ namespace AdventOfCode2024.Days
         public override string Part1()
         {
             var input = GetInput();
-            var mulRegex = new Regex("(mul\\((\\d{1,3}),(\\d{1,3})\\))");
-            var sum = 0;
-            foreach (var line in input)
-            {
-                var hello1 = mulRegex.Matches(line);
-                var hello = hello1.Select(x => x.Groups.Values.Skip(2).Select(x => x.Captures[0].Value).Select(int.Parse).Aggregate(1, (x, y) => x*y));
-                sum += hello.Sum();
-            }
+            var mulRegex = GetMulRegex();
+            var sum = input
+                .Select(inputLine =>
+                    mulRegex
+                        .Matches(inputLine)
+                        .Select(y => GetProductFromMatch(y))
+                        .Sum()
+                ).Sum();
 
             return sum.ToString();
         }
@@ -23,37 +23,40 @@ namespace AdventOfCode2024.Days
         public override string Part2()
         {
             var input = GetInput();
-            var mulRegex = new Regex("(mul\\((\\d{1,3}),(\\d{1,3})\\))");
-            var doRegex = new Regex("(do\\(\\))");
-            var dontRegex = new Regex("(don't\\(\\))");
+            var mulRegex = GetMulRegex();
+            var doRegex = new Regex("do\\(\\)");
+            var dontRegex = new Regex("don't\\(\\)");
 
             var sum = 0;
-            var currentDo = true;
+            var isCurrentInstructionDo = true;
 
             foreach(var line in input)
             {
-                var doMatches = doRegex.Matches(line);
-                var dontMatches = dontRegex.Matches(line);
+                var doInstructions = doRegex
+                    .Matches(line)
+                    .Select(x => new Instruction { IsDo = true, Index = x.Index });
+                var dontInstructions = dontRegex
+                    .Matches(line)
+                    .Select(x => new Instruction { IsDo = false, Index = x.Index });
 
-                var doDatas = doMatches.Select(x => new Data { Do = true, Index = x.Index });
-                var dontDatas = dontMatches.Select(x => new Data { Do = false, Index = x.Index });
-                var allDatas = doDatas.Concat(dontDatas).OrderBy(x => x.Index).ToArray();
+                var allInstructions = doInstructions
+                    .Concat(dontInstructions)
+                    .OrderBy(x => x.Index)
+                    .ToArray();
 
-                var mulMatches = mulRegex.Matches(line)?.ToList();
-                if (mulMatches == null || mulMatches.Count == 0)
-                    continue;
+                var mulMatches = mulRegex.Matches(line).ToArray() ?? [];
 
                 foreach (var match in mulMatches)
                 {
                     var matchIndex = match.Index;
-                    var doData = allDatas.LastOrDefault(x => x.Index < matchIndex);
+                    var lastInstructionInCurrentLine = allInstructions.LastOrDefault(x => x.Index < matchIndex);
 
-                    if (doData != null)
-                        currentDo = doData.Do;
-                    if (!currentDo)
+                    if (lastInstructionInCurrentLine != null)
+                        isCurrentInstructionDo = lastInstructionInCurrentLine.IsDo;
+                    if (!isCurrentInstructionDo)
                         continue;
 
-                    var result = match.Groups.Values.Skip(2).Select(x => x.Captures[0].Value).Select(int.Parse).Aggregate(1, (x, y) => x * y);
+                    var result = GetProductFromMatch(match);
                     sum += result;
                 }
             }
@@ -61,9 +64,18 @@ namespace AdventOfCode2024.Days
             return sum.ToString();
         }
 
-        private class Data
+        private static Regex GetMulRegex() => new("mul\\((\\d{1,3}),(\\d{1,3})\\)");
+
+        private static int GetProductFromMatch(Match match)
+            => match.Groups.Values
+                .Skip(1) // Skip the 'whole match' group (e.g. "mul(2,3)")
+                .Select(x => x.Captures[0].Value)
+                .Select(int.Parse)
+                .Aggregate(1, (x, y) => x * y);
+
+        private class Instruction
         {
-            public bool Do { get; set; }
+            public bool IsDo { get; set; }
             public int Index { get; set; }
         }
 
