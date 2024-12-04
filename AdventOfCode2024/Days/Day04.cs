@@ -21,90 +21,67 @@ namespace AdventOfCode2024.Days
         public override string Part1()
         {
             var input = GetInput();
-            var width = input[0].Length;
-            var height = input.Length;
-            var searchValueCount = 0;
+            var count = 0;
 
-            foreach(var (row, col) in GetGridCoords(width, height))
+            foreach(var (row, col) in GetGridCoords(input))
             {
                 foreach (var (diffRow, diffCol) in DiffValues)
                 {
-                    var wordFound = true;
+                    var isWordFound = Enumerable
+                        .Range(0, SearchValue.Length)
+                        .All(charIndex =>
+                            IsCharAtSearchCoords(input, row, col, diffRow * charIndex, diffCol * charIndex, SearchValue[charIndex])
+                        );
 
-                    for (int charIndex = 0; charIndex < SearchValue.Length; charIndex++)
-                    {
-                        var searchCol = col + diffCol * charIndex;
-                        var searchRow = row + diffRow * charIndex;
-                        if (!IsInBounds(searchCol, searchRow, width, height) || input[searchRow][searchCol] != SearchValue[charIndex])
-                        {
-                            wordFound = false;
-                            break;
-                        }
-                    }
-
-                    if (wordFound)
-                        searchValueCount++;
+                    if (isWordFound) count++;
                 }
             }
 
-            return searchValueCount.ToString();
+            return count.ToString();
         }
 
         public override string Part2()
         {
             var input = GetInput();
-            var width = input[0].Length;
-            var height = input.Length;
             var count = 0;
-            var indicesOfM = new HashSet<int>();
-            var invalidCase = false;
 
-            foreach (var (row, col) in GetGridCoords(width, height, ignoreEdges: true))
+            foreach (var (row, col) in GetGridCoords(input, ignoreEdges: true))
             {
+                var indicesOfM = new HashSet<int>();
+
                 if (input[row][col] != 'A') continue;
 
                 for (int m = 0; m < DiffValues.Count; m++)
                 {
                     // Ignore non diagonal directions (took me way too long to realise this)
-                    if (m % 2 == 0)
-                        continue;
+                    if (m % 2 == 0) continue;
 
                     var checkCases = new[] {
                         new { Char = 'M', DiffCoords = DiffValues[m] },
                         new { Char = 'S', DiffCoords = DiffValues[(m + 4) % DiffValues.Count] },
                     };
 
-                    invalidCase = false;
-                    foreach (var checkCase in checkCases)
-                    {
-                        var (diffRow, diffCol) = checkCase.DiffCoords;
-                        var searchCol = col + diffCol;
-                        var searchRow = row + diffRow;
-                        if (!IsInBounds(searchCol, searchRow, width, height) || input[searchRow][searchCol] != checkCase.Char)
-                        {
-                            invalidCase = true;
-                            break;
-                        }
-                    }
+                    var masFound = checkCases.All(checkCase =>
+                        IsCharAtSearchCoords(input, row, col, checkCase.DiffCoords.Item1, checkCase.DiffCoords.Item2, checkCase.Char)
+                    );
 
-                    if (!invalidCase)
-                        indicesOfM.Add(m);
+                    if (masFound) indicesOfM.Add(m);
                 }
 
                 foreach (var m in indicesOfM)
                 {
-                    // Check if we also have a MAS a 90deg-CW turn away
+                    // Check if we also have a MAS 90deg CW
                     if (indicesOfM.Contains((m + 2) % DiffValues.Count)) count++;
                 }
-
-                indicesOfM.Clear();
             }
 
             return count.ToString();
         }
 
-        private static IEnumerable<(int, int)> GetGridCoords(int width, int height, bool ignoreEdges = false)
+        private static IEnumerable<(int, int)> GetGridCoords(string[] input, bool ignoreEdges = false)
         {
+            var width = input[0].Length;
+            var height = input.Length;
             var offset = ignoreEdges ? 1 : 0;
 
             for (int i = offset; i < height - offset; i++)
@@ -116,17 +93,19 @@ namespace AdventOfCode2024.Days
             }
         }
 
-        private static bool IsInBounds(int x, int y, int width, int height)
+        private static bool IsCharAtSearchCoords(string[] input, int row, int col, int diffRow, int diffCol, char searchChar)
         {
-            return x >= 0 && x < width && y >= 0 && y < height;
-        }
-
-        private static bool CharFoundAtCoords(string[] input, int row, int col, int diffRow, int diffCol, char searchChar)
-        {
+            var width = input[0].Length;
+            var height = input.Length;
             var searchCol = col + diffCol;
             var searchRow = row + diffRow;
 
-            return IsInBounds(searchCol, searchRow, input[0].Length, input.Length) && input[searchRow][searchCol] == searchChar;
+            return IsInBounds(searchCol, searchRow, width, height) && input[searchRow][searchCol] == searchChar;
+        }
+
+        private static bool IsInBounds(int x, int y, int width, int height)
+        {
+            return x >= 0 && x < width && y >= 0 && y < height;
         }
 
         private string[] GetInput()
