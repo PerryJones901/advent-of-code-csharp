@@ -1,4 +1,6 @@
 ﻿using AdventOfCodeCommon;
+using AdventOfCodeCommon.Directions;
+using AdventOfCodeCommon.Models;
 using System.Collections.ObjectModel;
 
 namespace AdventOfCode2024.Days
@@ -54,7 +56,7 @@ namespace AdventOfCode2024.Days
                     }
                     else if (inputWithObstacle[spaceInFront.Item1][spaceInFront.Item2] == '#')
                     {
-                        direction = (Direction)(((int)direction + 1) % 4);
+                        direction = direction.ToClockwiseDirection();
                     }
                     else
                     {
@@ -107,7 +109,7 @@ namespace AdventOfCode2024.Days
                 }
                 else if (input[spaceInFront.Item1][spaceInFront.Item2] == '#')
                 {
-                    direction = (Direction)(((int)direction + 1) % 4);
+                    direction = direction.ToClockwiseDirection();
                 }
                 else
                 {
@@ -133,8 +135,6 @@ namespace AdventOfCode2024.Days
 
             return newInput;
         }
-
-        private enum Direction { Up, Right, Down, Left }
 
         private string[] GetInput()
         {
