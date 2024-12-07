@@ -15,27 +15,10 @@ namespace AdventOfCode2024.Days
                 var testValue = inputItem.TestValue;
                 var testList = inputItem.TestList;
 
-                foreach (var permutation in GetBoolPermutations(testList.Count - 1))
-                {
-                    var currentValue = testList[0];
-                    for (var i = 1; i < testList.Count; i++)
-                    {
-                        if (permutation[i - 1])
-                        {
-                            currentValue *= testList[i];
-                        }
-                        else
-                        {
-                            currentValue += testList[i];
-                        }
-                    }
+                var successExists = SuccessExistsWithAddAndMultiply(testList, testValue);
 
-                    if (currentValue == testValue)
-                    {
-                        totalCalibrationResult += testValue;
-                        break;
-                    }
-                }
+                if (successExists)
+                    totalCalibrationResult += testValue;
             }
 
             return totalCalibrationResult.ToString();
@@ -51,35 +34,18 @@ namespace AdventOfCode2024.Days
             {
                 var testValue = inputItem.TestValue;
                 var testList = inputItem.TestList;
-                var isSuccessWithoutConcat = false;
 
-                // First, try old way, as we don't need to use concat for those before
-                foreach (var permutation in GetBoolPermutations(testList.Count - 1))
+                // Focus on success without concat first
+                var successExistsWithoutConcat = SuccessExistsWithAddAndMultiply(testList, testValue);
+
+                if (successExistsWithoutConcat)
                 {
-                    var currentValue = testList[0];
-                    for (var i = 1; i < testList.Count; i++)
-                    {
-                        if (permutation[i - 1])
-                        {
-                            currentValue *= testList[i];
-                        }
-                        else
-                        {
-                            currentValue += testList[i];
-                        }
-                    }
-
-                    if (currentValue == testValue)
-                    {
-                        totalCalibrationResult += testValue;
-                        isSuccessWithoutConcat = true;
-                        break;
-                    }
+                    totalCalibrationResult += testValue;
+                    continue;
                 }
 
-                if (isSuccessWithoutConcat) continue;
-
-                // Now, try with concat in the mix:
+                // Now, try with concat in the mix.
+                // TODO: filter out permutations without concat op
                 foreach (var permutation in GetOperationPermutations(testList.Count - 1))
                 {
                     var currentValue = testList[0];
@@ -135,10 +101,29 @@ namespace AdventOfCode2024.Days
             return parsedInput;
         }
 
-        private class EquationInput
+        private static bool SuccessExistsWithAddAndMultiply(List<long> testList, long testValue)
         {
-            public long TestValue { get; set; }
-            public required List<long> TestList { get; set; }
+            foreach (var permutation in GetBoolPermutations(testList.Count - 1))
+            {
+                var currentValue = testList[0];
+                for (var i = 1; i < testList.Count; i++)
+                {
+                    if (permutation[i - 1])
+                    {
+                        currentValue *= testList[i];
+                    }
+                    else
+                    {
+                        currentValue += testList[i];
+                    }
+                }
+
+                if (currentValue == testValue)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         private static IEnumerable<bool[]> GetBoolPermutations(int length)
@@ -164,6 +149,12 @@ namespace AdventOfCode2024.Days
 
                 yield return listOfOps.ToArray();
             }
+        }
+
+        private class EquationInput
+        {
+            public long TestValue { get; set; }
+            public required List<long> TestList { get; set; }
         }
 
         private enum Operation
