@@ -96,7 +96,7 @@ namespace AdventOfCode2024.Days
                             currentValue *= nextValue;
                             break;
                         case Operation.Concatenate:
-                            currentValue = long.Parse(currentValue.ToString() + nextValue.ToString());
+                            currentValue = long.Parse($"{currentValue}{nextValue}");
                             break;
                     }
                 }
