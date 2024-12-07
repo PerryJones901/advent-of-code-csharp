@@ -7,7 +7,6 @@ namespace AdventOfCode2024.Days
         public override string Part1()
         {
             var input = GetInput();
-
             var totalCalibrationResult = 0L;
 
             foreach (var inputItem in input)
@@ -15,7 +14,7 @@ namespace AdventOfCode2024.Days
                 var testValue = inputItem.TestValue;
                 var testList = inputItem.TestList;
 
-                var successExists = SuccessExistsWithAddAndMultiply(testList, testValue);
+                var successExists = DoesSuccessExist(testList, testValue, isConcatIncluded: false);
 
                 if (successExists)
                     totalCalibrationResult += testValue;
@@ -27,7 +26,6 @@ namespace AdventOfCode2024.Days
         public override string Part2()
         {
             var input = GetInput();
-
             var totalCalibrationResult = 0L;
 
             foreach (var inputItem in input)
@@ -35,44 +33,20 @@ namespace AdventOfCode2024.Days
                 var testValue = inputItem.TestValue;
                 var testList = inputItem.TestList;
 
-                // Focus on success without concat first
-                var successExistsWithoutConcat = SuccessExistsWithAddAndMultiply(testList, testValue);
-
+                // First, try without concat operation (saves a bit of time)
+                var successExistsWithoutConcat = DoesSuccessExist(testList, testValue, isConcatIncluded: false);
                 if (successExistsWithoutConcat)
                 {
                     totalCalibrationResult += testValue;
                     continue;
                 }
 
-                // Now, try with concat in the mix.
-                // TODO: filter out permutations without concat op
-                foreach (var permutation in GetOperationPermutations(testList.Count - 1))
+                // Now, include concat operation
+                // TODO: filter out permutations without concat op, as we've already tried them above
+                var successExists = DoesSuccessExist(testList, testValue, isConcatIncluded: true);
+                if (successExists)
                 {
-                    var currentValue = testList[0];
-                    for (var i = 1; i < testList.Count; i++)
-                    {
-                        var op = permutation[i - 1];
-                        var nextValue = testList[i];
-
-                        switch (op)
-                        {
-                            case Operation.Add:
-                                currentValue += nextValue;
-                                break;
-                            case Operation.Multiply:
-                                currentValue *= nextValue;
-                                break;
-                            case Operation.Concatenate:
-                                currentValue = long.Parse(currentValue.ToString() + nextValue.ToString());
-                                break;
-                        }
-                    }
-
-                    if (currentValue == testValue)
-                    {
-                        totalCalibrationResult += testValue;
-                        break;
-                    }
+                    totalCalibrationResult += testValue;
                 }
             }
 
@@ -83,6 +57,7 @@ namespace AdventOfCode2024.Days
         {
             var input = FileInputAssistant.GetStringArrayFromFile(TextInputFilePath);
             var parsedInput = new List<EquationInput>();
+
             foreach (var inputItem in input)
             {
                 var splitInput = inputItem.Split(": ");
@@ -101,49 +76,49 @@ namespace AdventOfCode2024.Days
             return parsedInput;
         }
 
-        private static bool SuccessExistsWithAddAndMultiply(List<long> testList, long testValue)
+        private static bool DoesSuccessExist(List<long> testList, long testValue, bool isConcatIncluded = false)
         {
-            foreach (var permutation in GetBoolPermutations(testList.Count - 1))
+            foreach (var permutation in GetOperationPermutations(testList.Count - 1, isConcatIncluded))
             {
                 var currentValue = testList[0];
+
                 for (var i = 1; i < testList.Count; i++)
                 {
-                    if (permutation[i - 1])
+                    var op = permutation[i - 1];
+                    var nextValue = testList[i];
+
+                    switch (op)
                     {
-                        currentValue *= testList[i];
-                    }
-                    else
-                    {
-                        currentValue += testList[i];
+                        case Operation.Add:
+                            currentValue += nextValue;
+                            break;
+                        case Operation.Multiply:
+                            currentValue *= nextValue;
+                            break;
+                        case Operation.Concatenate:
+                            currentValue = long.Parse(currentValue.ToString() + nextValue.ToString());
+                            break;
                     }
                 }
 
                 if (currentValue == testValue)
-                {
                     return true;
-                }
             }
+
             return false;
         }
 
-        private static IEnumerable<bool[]> GetBoolPermutations(int length)
+        private static IEnumerable<Operation[]> GetOperationPermutations(int length, bool isConcatIncluded = false)
         {
-            for (var i = 0; i < Math.Pow(2, length); i++)
-            {
-                var binaryString = Convert.ToString(i, 2).PadLeft(length, '0');
-                yield return binaryString.Select(c => c == '1').ToArray();
-            }
-        }
+            var opCount = isConcatIncluded ? 3 : 2;
 
-        private static IEnumerable<Operation[]> GetOperationPermutations(int length)
-        {
-            for (var i = 0; i < Math.Pow(3, length); i++)
+            for (var i = 0; i < Math.Pow(opCount, length); i++)
             {
                 var listOfOps = new List<Operation>();
 
                 for (var j = 0; j < length; j++)
                 {
-                    var op = (Operation)(i / Math.Pow(3, j) % 3);
+                    var op = (Operation)(i / Math.Pow(opCount, j) % opCount);
                     listOfOps.Add(op);
                 }
 
