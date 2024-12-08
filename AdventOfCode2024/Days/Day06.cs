@@ -1,5 +1,6 @@
 ﻿using AdventOfCodeCommon;
 using AdventOfCodeCommon.Directions;
+using AdventOfCodeCommon.Extensions;
 using AdventOfCodeCommon.Models;
 using System.Collections.ObjectModel;
 
@@ -50,7 +51,7 @@ namespace AdventOfCode2024.Days
                     var (rowDiff, colDiff) = DirectionToDiffValue[direction];
                     var spaceInFront = (location.Item1 + rowDiff, location.Item2 + colDiff);
 
-                    if (!IsInBounds(spaceInFront.Item1, spaceInFront.Item2, inputWithObstacle))
+                    if (!inputWithObstacle.IsInBounds(spaceInFront.Item1, spaceInFront.Item2))
                     {
                         break;
                     }
@@ -103,7 +104,7 @@ namespace AdventOfCode2024.Days
                 var (rowDiff, colDiff) = DirectionToDiffValue[direction];
                 var spaceInFront = (location.Item1 + rowDiff, location.Item2 + colDiff);
 
-                if (!IsInBounds(spaceInFront.Item1, spaceInFront.Item2, input))
+                if (!input.IsInBounds(spaceInFront.Item1, spaceInFront.Item2))
                 {
                     break;
                 }
@@ -120,11 +121,6 @@ namespace AdventOfCode2024.Days
             }
 
             return spacesVisited;
-        }
-
-        private static bool IsInBounds(int row, int col, string[] grid)
-        {
-            return row >= 0 && row < grid.Length && col >= 0 && col < grid[0].Length;
         }
 
         private static string[] GetInputWithObstacle(string[] input, (int, int) location)
