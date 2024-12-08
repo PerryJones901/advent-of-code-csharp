@@ -5,89 +5,62 @@ namespace AdventOfCode2024.Days
     internal class Day08(bool isTest) : DayBase(8, isTest)
     {
         public override string Part1()
-        {
-            var input = GetInput();
-            var frequenciesToLocations = GetFrequenciesToLocationsDictionary(input);
-
-            var antiNodeLocations = new HashSet<(int, int)>();
-
-            foreach (var frequencyToLocations in frequenciesToLocations)
-            {
-                var locations = frequencyToLocations.Value;
-
-                foreach (var (firstLocation, secondLocation) in GetAllPairCombinations(locations))
-                {
-                    var rowDiff = secondLocation.Item1 - firstLocation.Item1;
-                    var colDiff = secondLocation.Item2 - firstLocation.Item2;
-
-                    var antinode1Row = secondLocation.Item1 + rowDiff;
-                    var antinode1Col = secondLocation.Item2 + colDiff;
-                    if (IsInBounds(antinode1Row, antinode1Col, input))
-                        antiNodeLocations.Add((antinode1Row, antinode1Col));
-
-                    var antinode2Row = firstLocation.Item1 - rowDiff;
-                    var antinode2Col = firstLocation.Item2 - colDiff;
-                    if (IsInBounds(antinode2Row, antinode2Col, input))
-                        antiNodeLocations.Add((antinode2Row, antinode2Col));
-                }
-            }
-
-            var uniqueLocationCount = antiNodeLocations.Count;
-
-            return uniqueLocationCount.ToString();
-        }
+            => GetAntiNodeLocationCount(isPart2: false).ToString();
 
         public override string Part2()
+            => GetAntiNodeLocationCount(isPart2: true).ToString();
+
+        public int GetAntiNodeLocationCount(bool isPart2)
         {
             var input = GetInput();
             var frequenciesToLocations = GetFrequenciesToLocationsDictionary(input);
-
             var antiNodeLocations = new HashSet<(int, int)>();
 
             foreach (var frequencyToLocations in frequenciesToLocations)
             {
-                var locations = frequencyToLocations.Value;
+                var antennaLocations = frequencyToLocations.Value;
 
-                foreach (var (first, second) in GetAllPairCombinations(locations))
+                foreach (var (first, second) in GetAllPairCombinations(antennaLocations))
                 {
                     var rowDiff = second.Item1 - first.Item1;
                     var colDiff = second.Item2 - first.Item2;
 
-                    // Add nodes after second location
-                    var antinodeRow = second.Item1;
-                    var antinodeCol = second.Item2;
+                    // Add antinodes from 2nd location
+                    // If Part2, include 2nd location itself
+                    var antinodeRow = isPart2 ? second.Item1 : second.Item1 + rowDiff;
+                    var antinodeCol = isPart2 ? second.Item2 : second.Item2 + colDiff;
 
-                    while (true)
+                    do
                     {
+                        if (!IsInBounds(antinodeRow, antinodeCol, input))
+                            break;
+
                         antiNodeLocations.Add((antinodeRow, antinodeCol));
 
                         antinodeRow += rowDiff;
                         antinodeCol += colDiff;
+                    }
+                    while (isPart2);
 
+                    // Add antinodes before first location
+                    antinodeRow = isPart2 ? first.Item1 : first.Item1 - rowDiff;
+                    antinodeCol = isPart2 ? first.Item2 : first.Item2 - colDiff;
+
+                    do
+                    {
                         if (!IsInBounds(antinodeRow, antinodeCol, input))
                             break;
-                    }
 
-                    // Add nodes before first location
-                    antinodeRow = first.Item1;
-                    antinodeCol = first.Item2;
-
-                    while (true)
-                    {
                         antiNodeLocations.Add((antinodeRow, antinodeCol));
 
                         antinodeRow -= rowDiff;
                         antinodeCol -= colDiff;
-
-                        if (!IsInBounds(antinodeRow, antinodeCol, input))
-                            break;
                     }
+                    while (isPart2);
                 }
             }
 
-            var uniqueLocationCount = antiNodeLocations.Count;
-
-            return uniqueLocationCount.ToString();
+            return antiNodeLocations.Count;
         }
 
         private static Dictionary<char, List<(int, int)>> GetFrequenciesToLocationsDictionary(string[] input)
@@ -112,14 +85,10 @@ namespace AdventOfCode2024.Days
         }
 
         private static IEnumerable<(T, T)> GetAllPairCombinations<T>(IList<T> enumerable)
-        {
-            return enumerable.SelectMany((item, index) => enumerable.Skip(index + 1), (x, y) => (x, y));
-        }
+            => enumerable.SelectMany((item, index) => enumerable.Skip(index + 1), (x, y) => (x, y));
 
         private static bool IsInBounds(int row, int col, string[] input)
-        {
-            return row >= 0 && row < input.Length && col >= 0 && col < input[0].Length;
-        }
+            => row >= 0 && row < input.Length && col >= 0 && col < input[0].Length;
 
         private string[] GetInput()
         {
