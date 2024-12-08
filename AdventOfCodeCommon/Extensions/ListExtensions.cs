@@ -1,0 +1,11 @@
+﻿namespace AdventOfCodeCommon.Extensions
+{
+    public static class ListExtensions
+    {
+        public static bool IsInBounds<S, T>(this IList<T> grid, int row, int col) where T : IList<S>
+            => row >= 0 && row < grid.Count && col >= 0 && col < grid[0].Count;
+
+        public static bool IsInBounds(this IList<string> grid, int row, int col)
+            => row >= 0 && row < grid.Count && col >= 0 && col < grid[0].Length;
+    }
+}
