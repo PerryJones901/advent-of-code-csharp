@@ -20,43 +20,24 @@ namespace AdventOfCode2024.Days
             {
                 var antennaLocations = frequencyToLocations.Value;
 
-                foreach (var (first, second) in GetAllPairCombinations(antennaLocations))
+                foreach (var (firstAntennaLocation, secondAntennaLocation) in GetAllPairCombinations(antennaLocations))
                 {
-                    var rowDiff = second.Item1 - first.Item1;
-                    var colDiff = second.Item2 - first.Item2;
+                    var rowDiff = secondAntennaLocation.Item1 - firstAntennaLocation.Item1;
+                    var colDiff = secondAntennaLocation.Item2 - firstAntennaLocation.Item2;
 
-                    // Add antinodes from 2nd location
-                    // If Part2, include 2nd location itself
-                    var antinodeRow = isPart2 ? second.Item1 : second.Item1 + rowDiff;
-                    var antinodeCol = isPart2 ? second.Item2 : second.Item2 + colDiff;
+                    AddAntiNodes(
+                        antiNodeLocations,
+                        antennaLocation: secondAntennaLocation,
+                        delta: (rowDiff, colDiff),
+                        isPart2,
+                        input);
 
-                    do
-                    {
-                        if (!IsInBounds(antinodeRow, antinodeCol, input))
-                            break;
-
-                        antiNodeLocations.Add((antinodeRow, antinodeCol));
-
-                        antinodeRow += rowDiff;
-                        antinodeCol += colDiff;
-                    }
-                    while (isPart2);
-
-                    // Add antinodes before first location
-                    antinodeRow = isPart2 ? first.Item1 : first.Item1 - rowDiff;
-                    antinodeCol = isPart2 ? first.Item2 : first.Item2 - colDiff;
-
-                    do
-                    {
-                        if (!IsInBounds(antinodeRow, antinodeCol, input))
-                            break;
-
-                        antiNodeLocations.Add((antinodeRow, antinodeCol));
-
-                        antinodeRow -= rowDiff;
-                        antinodeCol -= colDiff;
-                    }
-                    while (isPart2);
+                    AddAntiNodes(
+                        antiNodeLocations,
+                        antennaLocation: firstAntennaLocation,
+                        delta: (-rowDiff, -colDiff),
+                        isPart2,
+                        input);
                 }
             }
 
@@ -86,6 +67,32 @@ namespace AdventOfCode2024.Days
 
         private static IEnumerable<(T, T)> GetAllPairCombinations<T>(IList<T> enumerable)
             => enumerable.SelectMany((item, index) => enumerable.Skip(index + 1), (x, y) => (x, y));
+
+        private static void AddAntiNodes(
+            HashSet<(int, int)> antiNodeLocations,
+            (int, int) antennaLocation,
+            (int, int) delta,
+            bool isPart2,
+            string[] input)
+        {
+            var (row, col) = antennaLocation;
+            var (rowDelta, colDelta) = delta;
+
+            if (isPart2)
+                antiNodeLocations.Add((row, col));
+
+            do
+            {
+                row += rowDelta;
+                col += colDelta;
+
+                if (!IsInBounds(row, col, input))
+                    break;
+
+                antiNodeLocations.Add((row, col));
+            }
+            while (isPart2);
+        }
 
         private static bool IsInBounds(int row, int col, string[] input)
             => row >= 0 && row < input.Length && col >= 0 && col < input[0].Length;
