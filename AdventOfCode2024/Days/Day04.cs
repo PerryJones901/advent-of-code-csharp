@@ -1,4 +1,5 @@
 ﻿using AdventOfCodeCommon;
+using AdventOfCodeCommon.Extensions;
 using System.Collections.ObjectModel;
 
 namespace AdventOfCode2024.Days
@@ -95,17 +96,10 @@ namespace AdventOfCode2024.Days
 
         private static bool IsCharAtSearchCoords(string[] input, int row, int col, int diffRow, int diffCol, char searchChar)
         {
-            var width = input[0].Length;
-            var height = input.Length;
             var searchCol = col + diffCol;
             var searchRow = row + diffRow;
 
-            return IsInBounds(searchCol, searchRow, width, height) && input[searchRow][searchCol] == searchChar;
-        }
-
-        private static bool IsInBounds(int x, int y, int width, int height)
-        {
-            return x >= 0 && x < width && y >= 0 && y < height;
+            return input.IsInBounds(searchCol, searchRow) && input[searchRow][searchCol] == searchChar;
         }
 
         private string[] GetInput()

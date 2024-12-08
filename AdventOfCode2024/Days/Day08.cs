@@ -1,4 +1,5 @@
 ﻿using AdventOfCodeCommon;
+using AdventOfCodeCommon.Extensions;
 
 namespace AdventOfCode2024.Days
 {
@@ -20,7 +21,7 @@ namespace AdventOfCode2024.Days
             {
                 var antennaLocations = frequencyToLocations.Value;
 
-                foreach (var (firstAntennaLocation, secondAntennaLocation) in GetAllPairCombinations(antennaLocations))
+                foreach (var (firstAntennaLocation, secondAntennaLocation) in antennaLocations.GetAllPairCombinations())
                 {
                     var rowDiff = secondAntennaLocation.Item1 - firstAntennaLocation.Item1;
                     var colDiff = secondAntennaLocation.Item2 - firstAntennaLocation.Item2;
@@ -65,9 +66,6 @@ namespace AdventOfCode2024.Days
             return frequenciesToLocations;
         }
 
-        private static IEnumerable<(T, T)> GetAllPairCombinations<T>(IList<T> enumerable)
-            => enumerable.SelectMany((item, index) => enumerable.Skip(index + 1), (x, y) => (x, y));
-
         private static void AddAntiNodes(
             HashSet<(int, int)> antiNodeLocations,
             (int, int) antennaLocation,
@@ -86,16 +84,13 @@ namespace AdventOfCode2024.Days
                 row += rowDelta;
                 col += colDelta;
 
-                if (!IsInBounds(row, col, input))
+                if (!input.IsInBounds(row, col))
                     break;
 
                 antiNodeLocations.Add((row, col));
             }
             while (isPart2);
         }
-
-        private static bool IsInBounds(int row, int col, string[] input)
-            => row >= 0 && row < input.Length && col >= 0 && col < input[0].Length;
 
         private string[] GetInput()
         {
