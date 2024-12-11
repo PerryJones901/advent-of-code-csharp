@@ -55,6 +55,17 @@ namespace AdventOfCodeCommon
             ).ToArray();
         }
 
+        public static long[] GetLongRowsFromFile(
+            string filePath,
+            string splitSeparator = LINE_SEPARATOR)
+        {
+            return GetEnumerableFromFile(
+                filePath,
+                splitSeparator,
+                long.Parse
+            ).ToArray();
+        }
+
         public static string[][] GetParamListsFromRegexFromFile(
             string fileName,
             string regexPattern,
