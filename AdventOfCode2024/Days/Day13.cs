@@ -8,15 +8,32 @@ namespace AdventOfCode2024.Days
         private const long PART_TWO_OFFSET = 10000000000000;
 
         public override string Part1() => GetTotalTokenCount();
-        public override string Part2() => GetTotalTokenCount(offset: PART_TWO_OFFSET);
+        public override string Part2() => GetTotalTokenCount(prizeOffset: PART_TWO_OFFSET);
 
-        private string GetTotalTokenCount(long offset = 0)
+        private string GetTotalTokenCount(long prizeOffset = 0)
         {
-            var input = GetInput(offset);
+            var input = GetInput(prizeOffset);
             var totalTokenCount = 0L;
 
             foreach (var prizeCase in input)
             {
+                /*
+                 * Some cheeky Linear Algebra here
+                 * Solutions are in form:
+                 * ┌ ┐                         ┌            ┐ ┌   ┐
+                 *  a              1              B.Y  -B.X    P.X
+                 *  b  =  -------------------    -A.Y   A.X    P.Y
+                 * └ ┘    (A.X*B.Y - B.X*A.Y)  └            ┘ └   ┘
+                 * 
+                 * where:
+                 * a = number of A presses
+                 * b = number of B presses
+                 * A, B are the vectors of a single button press of A and B respectively
+                 * P is the vector of where the prize lives
+                 * 
+                 * now, the dividing of the det will mean we leave the nice world of longs and into floats/doubles: not nice.
+                 * we can avoid that by checking divisibility of the coords of the "unnormed" vector to the 1/det's right hand side.
+                 */
                 var det = prizeCase.ButtonA.X * prizeCase.ButtonB.Y - prizeCase.ButtonB.X * prizeCase.ButtonA.Y;
 
                 // if det == 0, assume we don't handle
