@@ -22,8 +22,13 @@ namespace AdventOfCode2024.Days
         public override string Part2()
         {
             var input = GetInput();
+            var towelPatterns = input[0].Split(", ");
+            var designs = input[1].Split(NEW_LINE);
+            var memoPossibleWaysCount = new Dictionary<string, long>();
 
-            return "Part 2";
+            var totalPossibleWaysCount = designs.Sum(x => PossibleWaysCount(x, towelPatterns, memoPossibleWaysCount));
+
+            return totalPossibleWaysCount.ToString();
         }
 
         private static bool IsDesignValid(string design, string[] towelPatterns, Dictionary<string, bool> memoIsDesignValid)
@@ -45,6 +50,29 @@ namespace AdventOfCode2024.Days
                 memoIsDesignValid[design] = isDesignValid;
 
             return isDesignValid;
+        }
+
+        private static long PossibleWaysCount(string design, string[] towelPatterns, Dictionary<string, long> memoPossibleWaysCount)
+        {
+            if (design.Length == 0)
+                return 1;
+
+            if (memoPossibleWaysCount.TryGetValue(design, out long memoValue))
+                return memoValue;
+
+            var possibleWaysCount = 0L;
+            foreach (var towelPattern in towelPatterns)
+            {
+                if (design.StartsWith(towelPattern))
+                {
+                    possibleWaysCount += PossibleWaysCount(design[towelPattern.Length..], towelPatterns, memoPossibleWaysCount);
+                }
+            }
+
+            if (!memoPossibleWaysCount.ContainsKey(design))
+                memoPossibleWaysCount[design] = possibleWaysCount;
+
+            return possibleWaysCount;
         }
 
         private string[] GetInput()
