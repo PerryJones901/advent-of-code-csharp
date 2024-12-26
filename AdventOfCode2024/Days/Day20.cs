@@ -1,6 +1,8 @@
 ﻿using AdventOfCodeCommon;
 using AdventOfCodeCommon.Models;
+using System.Collections.Immutable;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.Linq;
 
 namespace AdventOfCode2024.Days
@@ -114,8 +116,71 @@ namespace AdventOfCode2024.Days
         public override string Part2()
         {
             var input = GetInput();
+            var reachableCoords = GetReachableCoords(input);
+            var startingPoint = GetPositionOfChar(input, 'S');
+            var endingPoint = GetPositionOfChar(input, 'E');
+            var dist = reachableCoords.ToDictionary(x => x, _ => int.MaxValue);
+            var prev = reachableCoords.ToDictionary(x => x, _ => ((int, int)?)null);
 
-            return "Part 2";
+            var remainingCoords = reachableCoords.ToHashSet();
+
+            dist[endingPoint] = 0;
+
+            // Apply Dijkstra's
+            while (remainingCoords.Count > 0)
+            {
+                var position = remainingCoords.OrderBy(x => dist[x]).First();
+                remainingCoords.Remove(position);
+
+                foreach (var (diffRow, diffCol) in DiffValues)
+                {
+                    var neighbourRow = position.Item1 + diffRow;
+                    var neighbourCol = position.Item2 + diffCol;
+
+                    // Check if out of bounds
+                    if (neighbourRow < 0 || neighbourRow >= input.Length || neighbourCol < 0 || neighbourCol >= input[0].Length)
+                        continue;
+
+                    var neighbourPosition = (neighbourRow, neighbourCol);
+
+                    // Needs to be still in remainingCoords
+                    if (!remainingCoords.Contains(neighbourPosition))
+                        continue;
+
+                    // Decide if distance is shorter
+                    var tempDist = dist[position] == int.MaxValue ? int.MaxValue : dist[position] + 1;
+                    if (tempDist < dist[neighbourPosition])
+                    {
+                        dist[neighbourPosition] = tempDist;
+                        prev[neighbourPosition] = position;
+                    }
+                }
+            }
+
+            // A "Super cheat" is a cheat that saves more than 100 picoseconds
+            var superCheatCount = 0;
+
+            foreach (var cheatStartPosition in reachableCoords)
+            {
+                // Now, do a WHERE to find those within a certain dist
+                Console.WriteLine(cheatStartPosition);
+
+                var reachableCoordsWithin20WithDist = reachableCoords.Where(x =>
+                    Math.Abs(x.Item1 - cheatStartPosition.Item1) + Math.Abs(x.Item2 - cheatStartPosition.Item2) <= 20)
+                    .ToDictionary(
+                        x => x,
+                        x => Math.Abs(x.Item1 - cheatStartPosition.Item1) + Math.Abs(x.Item2 - cheatStartPosition.Item2)
+                    );
+
+                var cheatedDistDiffs = reachableCoordsWithin20WithDist.ToDictionary(
+                    x => x.Key,
+                    x => dist[cheatStartPosition] - (x.Value + dist[x.Key]));
+
+                var superCheatCountTemp = cheatedDistDiffs.Count(x => x.Value >= 100);
+                superCheatCount += superCheatCountTemp;
+            }
+
+            return superCheatCount.ToString();
         }
 
         private static (int, int) GetPositionOfChar(char[][] grid, char charToFind)
