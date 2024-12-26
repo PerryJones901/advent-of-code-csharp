@@ -1,5 +1,4 @@
 ﻿using AdventOfCodeCommon;
-using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 
 namespace AdventOfCode2024.Days
@@ -66,53 +65,16 @@ namespace AdventOfCode2024.Days
         public override string Part2()
         {
             var input = GetInput();
-            var reachableCoords = GetReachableCoords(input);
-            var endingPoint = GetPositionOfChar(input, 'E');
-            var dist = reachableCoords.ToDictionary(x => x, _ => int.MaxValue);
-
-            var remainingCoords = reachableCoords.ToHashSet();
-
-            dist[endingPoint] = 0;
-
-            // Apply Dijkstra's
-            while (remainingCoords.Count > 0)
-            {
-                var position = remainingCoords.OrderBy(x => dist[x]).First();
-                remainingCoords.Remove(position);
-
-                foreach (var (diffRow, diffCol) in DiffValues)
-                {
-                    var neighbourRow = position.Item1 + diffRow;
-                    var neighbourCol = position.Item2 + diffCol;
-
-                    // Check if out of bounds
-                    if (neighbourRow < 0 || neighbourRow >= input.Length || neighbourCol < 0 || neighbourCol >= input[0].Length)
-                        continue;
-
-                    var neighbourPosition = (neighbourRow, neighbourCol);
-
-                    // Needs to be still in remainingCoords
-                    if (!remainingCoords.Contains(neighbourPosition))
-                        continue;
-
-                    // Decide if distance is shorter
-                    var tempDist = dist[position] == int.MaxValue ? int.MaxValue : dist[position] + 1;
-                    if (tempDist < dist[neighbourPosition])
-                    {
-                        dist[neighbourPosition] = tempDist;
-                    }
-                }
-            }
+            var dijkstrasResult = GetDijkstrasResult(input);
+            var reachableSpaces = dijkstrasResult.ReachableSpaces;
+            var dist = dijkstrasResult.SpaceToDistanceFromEnd;
 
             // A "Super cheat" is a cheat that saves more than 100 picoseconds
             var superCheatCount = 0;
 
-            foreach (var cheatStartPosition in reachableCoords)
+            foreach (var cheatStartPosition in reachableSpaces)
             {
-                // Now, do a WHERE to find those within a certain dist
-                Console.WriteLine(cheatStartPosition);
-
-                var reachableCoordsWithin20WithDist = reachableCoords.Where(x =>
+                var reachableCoordsWithin20WithDist = reachableSpaces.Where(x =>
                     Math.Abs(x.Item1 - cheatStartPosition.Item1) + Math.Abs(x.Item2 - cheatStartPosition.Item2) <= 20)
                     .ToDictionary(
                         x => x,
