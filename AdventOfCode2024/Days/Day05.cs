@@ -59,29 +59,16 @@ namespace AdventOfCode2024.Days
 
         public override string Part2()
         {
-            // 11520 WRONG
-            // 9849 WRONG
-            // 5043 WRONG
             var input = GetInput();
-            var pageOrderRules = input[0].Split("\r\n").Select(x => x.Split("|").Select(int.Parse).ToArray());
-            var updates = input[1].Split("\r\n").Select(x => x.Split(",").Select(int.Parse).ToArray());
-
-            // Part 2
-            var pages = updates.SelectMany(x => x).Distinct().ToArray();
-            var pagesInOrder = new List<int>();
+            var pageOrderRules = input[0].Split("\r\n").Select(x => x.Split("|").Select(int.Parse).ToArray()).ToArray();
+            var updates = input[1].Split("\r\n").Select(x => x.Split(",").Select(int.Parse).ToArray()).ToArray();
 
             var pageOrderRulesDict = new Dictionary<int, List<int>>();
 
-            // Part 1 stuff
-            foreach (var rule in pageOrderRules)
+            foreach (var pageOrderRule in pageOrderRules)
             {
-                var firstPage = rule[0];
-                var secondPage = rule[1];
-
-                if (firstPage == 45 && secondPage == 22)
-                {
-                    Console.WriteLine("Hello");
-                }
+                var firstPage = pageOrderRule[0];
+                var secondPage = pageOrderRule[1];
 
                 if (!pageOrderRulesDict.ContainsKey(firstPage))
                     pageOrderRulesDict[firstPage] = [];
@@ -89,95 +76,47 @@ namespace AdventOfCode2024.Days
                 pageOrderRulesDict[firstPage].Add(secondPage);
             }
 
-            pagesInOrder = pageOrderRulesDict.Keys.OrderByDescending(x => pageOrderRulesDict[x].Count).ToList();
+            var middleSum = 0;
 
-            // Part 2 stuff
-            //var changeHasBeenMade = true;
-            //while (changeHasBeenMade)
-            //{
-            //    changeHasBeenMade = false;
-
-            //    foreach (var rule in pageOrderRules)
-            //    {
-            //        var firstPage = rule[0];
-            //        var secondPage = rule[1];
-
-            //        var firstPageIndexInList = pagesInOrder.IndexOf(firstPage);
-            //        var secondPageIndexInList = pagesInOrder.IndexOf(secondPage);
-            //        if (firstPageIndexInList == -1 && secondPageIndexInList == -1)
-            //        {
-            //            pagesInOrder.Add(firstPage);
-            //            pagesInOrder.Add(secondPage);
-            //        }
-            //        else if (firstPageIndexInList == -1)
-            //        {
-            //            pagesInOrder.Insert(secondPageIndexInList, firstPage);
-            //        }
-            //        else if (secondPageIndexInList == -1)
-            //        {
-            //            pagesInOrder.Insert(firstPageIndexInList + 1, secondPage);
-            //        }
-            //        else if (firstPageIndexInList > secondPageIndexInList)
-            //        {
-            //            pagesInOrder.Remove(firstPage);
-            //            pagesInOrder.Insert(secondPageIndexInList, firstPage);
-            //        } else
-            //        {
-            //            continue;
-            //        }
-
-            //        changeHasBeenMade = true;
-            //    }
-            //}
-
-            var pageToOrderValue = pagesInOrder.Select((x, i) => (x, i)).ToDictionary(x => x.x, x => x.i);
-
-            // check
-            foreach (var rule in pageOrderRules)
-            {
-                var firstPage = rule[0];
-                var secondPage = rule[1];
-                if (pageToOrderValue[firstPage] > pageToOrderValue[secondPage])
-                {
-                    throw new Exception("Invalid order");
-                }
-            }
-
-            int middleValidCount = 0;
-            bool updateIsValid;
             foreach (var update in updates)
             {
-                updateIsValid = true;
+                // Step 1: Reorder update to be in correct ordering
+                var correctOrderOfUpdate = update.ToList();
 
-                for (int i = 0; i < update.Length - 1; i++)
+                var hasSwapHappened = true;
+                while (hasSwapHappened)
                 {
-                    var currentPage = update[i];
-
-                    for (int j = i + 1; j < update.Length; j++)
+                    hasSwapHappened = false;
+                    for (var i = 0; i < correctOrderOfUpdate.Count - 1; i++)
                     {
-                        var nextPage = update[j];
+                        var firstPage = correctOrderOfUpdate[i];
+                        var secondPage = correctOrderOfUpdate[i + 1];
 
-                        if (!pageOrderRulesDict.TryGetValue(currentPage, out List<int>? value) || !value.Contains(nextPage))
+                        if (pageOrderRulesDict[secondPage].Contains(firstPage))
                         {
-                            updateIsValid = false;
-                            break;
+                            hasSwapHappened = true;
+                            correctOrderOfUpdate[i + 1] = firstPage;
+                            correctOrderOfUpdate[i] = secondPage;
                         }
                     }
-
-                    if (!updateIsValid)
-                        break;
                 }
 
-                if (updateIsValid)
-                    continue;
+                // Step 2: Compare to see if list has changed
+                var changedFromOriginal = false;
+                for (var i = 0; i < correctOrderOfUpdate.Count - 1; i++)
+                {
+                    if (update[i] != correctOrderOfUpdate[i])
+                    {
+                        changedFromOriginal = true;
+                        break;
+                    }
+                }
 
-                var updateInOrder = update.OrderBy(x => pageToOrderValue[x]).ToArray();
-
-                var middlePage = updateInOrder[update.Length / 2];
-                middleValidCount += middlePage;
+                if (changedFromOriginal)
+                    middleSum += correctOrderOfUpdate[correctOrderOfUpdate.Count / 2];
             }
 
-            return middleValidCount.ToString();
+            return middleSum.ToString();
         }
 
         private string[] GetInput()
