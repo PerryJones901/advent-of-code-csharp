@@ -1,4 +1,5 @@
 ﻿using AdventOfCodeCommon;
+using System.Diagnostics;
 
 namespace AdventOfCode2024.Days
 {
@@ -72,12 +73,21 @@ namespace AdventOfCode2024.Days
 
         public override string Part2()
         {
+            // TOO LOW: 4456112330
             var input = GetInput();
             var diskInfos = input.ToCharArray().Select((c, index) => new DiskInfo
             {
                 Id = index % 2 == 0 ? index / 2 : null,
                 Size = int.Parse(c.ToString())
             }).ToList();
+
+            // InitIndexOnDrive
+            var currentDiskInd = 0;
+            foreach (var diskI in diskInfos)
+            {
+                diskI.IndexOnDrive = currentDiskInd;
+                currentDiskInd += diskI.Size;
+            }
 
             var newDiskInfos = diskInfos.ToList();
             var reverseFiles = diskInfos.Where(x => x.Id.HasValue).ToList();
@@ -89,13 +99,22 @@ namespace AdventOfCode2024.Days
             // Now, make sure we always move file LEFT and never RIGHT
             foreach (var file in reverseFiles)
             {
+                var currentDiskIndex = 0;
+
                 for (var index = 0; index < newDiskInfos.Count; index++)
                 {
                     var item = newDiskInfos[index];
 
-                    // If NOT free space, continue
-                    if (item.Id.HasValue) continue;
+                    // If too far, break;
+                    if (item.IndexOnDrive < currentDiskIndex)
+                        break;
 
+                    // If NOT free space, continue
+                    if (item.Id.HasValue)
+                    {
+                        currentDiskIndex += item.Size;
+                        continue;
+                    }
                     // If next file is size 0, need to do more logic, so throw for now
                     if (index < diskInfos.Count - 1 && newDiskInfos[index + 1].Size == 0)
                         throw new Exception("File size of 0 here");
@@ -103,45 +122,48 @@ namespace AdventOfCode2024.Days
                     // Now, check for enough free space
                     if (file.Size <= item.Size)
                     {
-                        // We have enough!
-                        // First, remove file but replace with free space
-                        // TODO
-
-                        // First, remove free space info
-                        newDiskInfos.RemoveAt(index);
-                        newDiskInfos.Insert(index, item);
+                        // We have enough! Let's move
+                        newDiskInfos[index] = file;
+                        newDiskInfos[index].IndexOnDrive = currentDiskIndex;
 
                         var freeSpaceDiff = item.Size - file.Size;
                         if (freeSpaceDiff > 0)
                         {
-                            newDiskInfos.Insert(index + 1, new DiskInfo { Size = freeSpaceDiff });
+                            newDiskInfos.Insert(index + 1, new DiskInfo {
+                                Size = freeSpaceDiff,
+                                IndexOnDrive = currentDiskIndex + file.Size,
+                            });
                         }
+
+                        // TODO: Now. to remove original, and to merge any empty spaces
+
+                        currentDiskIndex += item.Size;
 
                         break;
                     }
                 }
             }
 
-            var diskSize = diskInfos.Sum(x => x.Size);
-
-            var files = diskInfos.Where(d => d.Id.HasValue).ToList();
-            var filesSize = files.Sum(x => x.Size);
-
-            // End File
-            var currentEndFileIndex = files.Count - 1;
-            var currentEndFileByteIndex = 0;
-            var ascendingDiskIndex = 0;
             var checksum = 0L;
+            var driveIndex = 0;
+            foreach (var diskInfo in newDiskInfos)
+            {
+                if (diskInfo.Id is not null)
+                    checksum += (driveIndex * diskInfo.Size) + (diskInfo.Size) * (diskInfo.Size - 1) / 2;
+
+                driveIndex += diskInfo.Size;
+            }
 
             return checksum.ToString();
         }
 
+        [DebuggerDisplay("Id:{Id},Size:{Size}")]
         private class DiskInfo
         {
             // If null, it's free space
             public int? Id { get; set; }
             public int Size { get; set; }
-            public bool HasMoved { get; set; } = false;
+            public int? IndexOnDrive { get; set; } = null;
         }
 
         private string GetInput()
