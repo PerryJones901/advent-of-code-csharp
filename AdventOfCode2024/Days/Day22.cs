@@ -58,9 +58,6 @@ namespace AdventOfCode2024.Days
 
                             // Finally, add to seq already done
                             priceSeqAlreadyDone.Add(seqKey);
-
-                            if (seqKey == (-2, 1, -1, 3))
-                                Console.WriteLine(nextPrice);
                         }
                     }
 
