@@ -4,23 +4,13 @@ namespace AdventOfCode2024.Days
 {
     internal class Day05(bool isTest) : DayBase(5, isTest)
     {
+        private const string NEW_LINE = "\r\n";
         public override string Part1()
         {
             var input = GetInput();
-            var pageOrderRules = input[0].Split("\r\n").Select(x => x.Split("|").Select(int.Parse).ToArray());
-            var updates = input[1].Split("\r\n").Select(x => x.Split(",").Select(int.Parse).ToArray());
+            var updates = input[1].Split(NEW_LINE).Select(x => x.Split(",").Select(int.Parse).ToArray());
 
-            var pageOrderRulesDict = new Dictionary<int, List<int>>();
-            foreach (var rule in pageOrderRules)
-            {
-                var firstPage = rule[0];
-                var secondPage = rule[1];
-
-                if (!pageOrderRulesDict.ContainsKey(firstPage))
-                    pageOrderRulesDict[firstPage] = [];
-
-                pageOrderRulesDict[firstPage].Add(secondPage);
-            }
+            var pageOrderRulesDict = GetPageOrderRulesDict(input);
 
             int middleValidCount = 0;
             bool updateIsValid;
@@ -60,21 +50,9 @@ namespace AdventOfCode2024.Days
         public override string Part2()
         {
             var input = GetInput();
-            var pageOrderRules = input[0].Split("\r\n").Select(x => x.Split("|").Select(int.Parse).ToArray()).ToArray();
-            var updates = input[1].Split("\r\n").Select(x => x.Split(",").Select(int.Parse).ToArray()).ToArray();
+            var updates = input[1].Split(NEW_LINE).Select(x => x.Split(",").Select(int.Parse).ToArray()).ToArray();
 
-            var pageOrderRulesDict = new Dictionary<int, List<int>>();
-
-            foreach (var pageOrderRule in pageOrderRules)
-            {
-                var firstPage = pageOrderRule[0];
-                var secondPage = pageOrderRule[1];
-
-                if (!pageOrderRulesDict.ContainsKey(firstPage))
-                    pageOrderRulesDict[firstPage] = [];
-
-                pageOrderRulesDict[firstPage].Add(secondPage);
-            }
+            var pageOrderRulesDict = GetPageOrderRulesDict(input);
 
             var middleSum = 0;
 
@@ -117,6 +95,27 @@ namespace AdventOfCode2024.Days
             }
 
             return middleSum.ToString();
+        }
+
+        private static Dictionary<int, List<int>> GetPageOrderRulesDict(string[] input)
+        {
+            var pageOrderRules = input[0].Split(NEW_LINE).Select(x => x.Split("|").Select(int.Parse).ToArray()).ToArray();
+            var updates = input[1].Split(NEW_LINE).Select(x => x.Split(",").Select(int.Parse).ToArray()).ToArray();
+
+            var pageOrderRulesDict = new Dictionary<int, List<int>>();
+
+            foreach (var pageOrderRule in pageOrderRules)
+            {
+                var firstPage = pageOrderRule[0];
+                var secondPage = pageOrderRule[1];
+
+                if (!pageOrderRulesDict.ContainsKey(firstPage))
+                    pageOrderRulesDict[firstPage] = [];
+
+                pageOrderRulesDict[firstPage].Add(secondPage);
+            }
+
+            return pageOrderRulesDict;
         }
 
         private string[] GetInput()
