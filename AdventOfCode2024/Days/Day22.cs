@@ -9,17 +9,12 @@ namespace AdventOfCode2024.Days
         public override string Part1()
         {
             var input = GetInput();
-            var secretNumSum = 0L;
 
-            foreach (var initSecretNum in input)
-            {
-                var newNum = initSecretNum;
-                for (int iter = 0; iter < 2_000; iter++)
-                {
-                    newNum = GetNextSecretNumber(newNum);
-                }
-                secretNumSum += newNum;
-            }
+            var secretNumSum = input.Sum(secretNum =>
+                Enumerable.Range(0, 2000).Aggregate(
+                    secretNum,
+                    (num, _) => GetNextSecretNumber(num)
+                ));
 
             return secretNumSum.ToString();
         }
@@ -27,12 +22,6 @@ namespace AdventOfCode2024.Days
         public override string Part2()
         {
             var input = GetInput();
-
-            // Step 1: track diff's over time, and put in dict of keys of 4-tuple int.
-            //  Remember: we cannot replace because the monkey will sell on first time it sees it
-            // Step 2: iterate on all keys til we find the one with best amount of bananas, and return that max
-
-            // Use a master account
             var seqToTotalBananas = new Dictionary<(int, int, int, int), int>();
 
             foreach (var initSecretNum in input)
@@ -86,16 +75,16 @@ namespace AdventOfCode2024.Days
 
         private static long GetNextSecretNumber(long number)
         {
-            var mult64Result = number * 64;
-            var newNumber = number ^ mult64Result;
+            var multiply64Result = number * 64;
+            var newNumber = number ^ multiply64Result;
             newNumber %= MOD_CONST;
 
             var divResult = newNumber / 32;
             newNumber ^= divResult;
             newNumber %= MOD_CONST;
 
-            var mult2048Result = newNumber * 2048;
-            newNumber ^= mult2048Result;
+            var multiply2048Result = newNumber * 2048;
+            newNumber ^= multiply2048Result;
             newNumber %= MOD_CONST;
 
             return newNumber;
