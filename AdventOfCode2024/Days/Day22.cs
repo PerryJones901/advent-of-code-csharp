@@ -30,7 +30,7 @@ namespace AdventOfCode2024.Days
                 var priceSeq = new List<int>();
                 var currentNum = initSecretNum;
 
-                for (int iter = 0; iter < 2_000; iter++)
+                Enumerable.Range(0, 2000).ToList().ForEach(_ =>
                 {
                     var nextNum = GetNextSecretNumber(currentNum);
                     var currentPrice = (int)(currentNum % 10);
@@ -62,7 +62,7 @@ namespace AdventOfCode2024.Days
                     }
 
                     currentNum = nextNum;
-                }
+                });
             }
 
             var maxBananaCount = seqToTotalBananas.MaxBy(x => x.Value).Value;
