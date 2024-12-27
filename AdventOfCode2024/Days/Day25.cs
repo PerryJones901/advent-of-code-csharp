@@ -8,8 +8,8 @@ namespace AdventOfCode2024.Days
         public override string Part1()
         {
             var input = GetInput();
-            var keys = new List<(int, int, int, int, int)>();
-            var locks = new List<(int, int, int, int, int)>();
+            var keys = new List<List<int>>();
+            var locks = new List<List<int>>();
 
             foreach (var inputLine in input)
             {
@@ -18,8 +18,7 @@ namespace AdventOfCode2024.Days
 
                 if (isLock)
                 {
-                    var heights = new List<int>();
-                    for (int index = 0; index < 5; index++)
+                    var heights = Enumerable.Range(0, inputLineAsStrings[0].Length).ToList().Select(index =>
                     {
                         var height = 0;
                         while (true)
@@ -28,25 +27,26 @@ namespace AdventOfCode2024.Days
                             if (inputLineAsStrings[height][index] == '.')
                                 break;
                         }
-                        heights.Add(height - 1);
-                    }
-                    locks.Add((heights[0], heights[1], heights[2], heights[3], heights[4]));
+                        return height - 1;
+                    }).ToList();
+
+                    locks.Add(heights);
                 }
                 else
                 {
-                    var heights = new List<int>();
-                    for (int index = 0; index < 5; index++)
+                    var heights = Enumerable.Range(0, inputLineAsStrings[0].Length).ToList().Select(index =>
                     {
                         var height = 0;
                         while (true)
                         {
                             height++;
-                            if (inputLineAsStrings[6-height][index] == '.')
+                            if (inputLineAsStrings[6 - height][index] == '.')
                                 break;
                         }
-                        heights.Add(height - 1);
-                    }
-                    keys.Add((heights[0], heights[1], heights[2], heights[3], heights[4]));
+                        return height - 1;
+                    }).ToList();
+
+                    keys.Add(heights);
                 }
             }
 
@@ -56,13 +56,10 @@ namespace AdventOfCode2024.Days
             {
                 foreach (var key in keys)
                 {
-                    var add1 = @lock.Item1 + key.Item1;
-                    var add2 = @lock.Item2 + key.Item2;
-                    var add3 = @lock.Item3 + key.Item3;
-                    var add4 = @lock.Item4 + key.Item4;
-                    var add5 = @lock.Item5 + key.Item5;
+                    var zipped = @lock.Zip(key, (lockHeight, keyHeight) => lockHeight + keyHeight);
+                    var isMatch = zipped.All(x => x <= 5);
 
-                    if (add1 <= 5 && add2 <= 5 && add3 <= 5 && add4 <= 5 && add5 <= 5)
+                    if (isMatch)
                         goodMatchCount++;
                 }
             }
