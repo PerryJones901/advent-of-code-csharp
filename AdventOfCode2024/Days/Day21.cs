@@ -23,8 +23,9 @@ namespace AdventOfCode2024.Days
 
         public override string Part1()
         {
+            // TOO HIGH: 169612
             var input = GetInput();
-            var sum = GetComplexitySum(input, 1);
+            var sum = GetComplexitySum(input, 2);
 
             return sum.ToString();
         }
@@ -52,28 +53,42 @@ namespace AdventOfCode2024.Days
                     var coordsOfNextButton = NumPadButtonToCoord[buttonToPress];
                     var diffRow = coordsOfNextButton.Item1 - coordsOfCurrentChar.Item1;
                     var diffCol = coordsOfNextButton.Item2 - coordsOfCurrentChar.Item2;
+                    var buttonsToPress = string.Empty;
 
                     // If need to move up, do so first
                     if (diffRow < 0)
-                        buttonPressCount += (-1 * diffRow) * GetButtonPressedCount('^', depth, memoStore, state);
+                    {
+                        var count = -diffRow;
+                        buttonsToPress += new string([.. Enumerable.Repeat('^', count)]);
+                    }
 
                     // Move horizontal
                     if (diffCol < 0)
-                        buttonPressCount += (-1 * diffCol) * GetButtonPressedCount('<', depth, memoStore, state);
+                    {
+                        var count = -diffCol;
+                        buttonsToPress += new string([.. Enumerable.Repeat('<', count)]);
+                    }
                     else if (diffCol > 0)
-                        buttonPressCount += diffCol * GetButtonPressedCount('>', depth, memoStore, state);
+                    {
+                        buttonsToPress += new string([.. Enumerable.Repeat('>', diffCol)]);
+                    }
 
                     // If need to move down, do so now
                     if (diffRow > 0)
-                        buttonPressCount += diffRow * GetButtonPressedCount('v', depth, memoStore, state);
+                    {
+                        buttonsToPress += new string([.. Enumerable.Repeat('v', diffRow)]);
+                    }
 
                     // Push button
-                    buttonPressCount += GetButtonPressedCount('A', depth, memoStore, state);
+                    buttonsToPress += 'A';
+                    buttonPressCount += GetButtonPressedCount(depth, memoStore, state, buttonsToPress);
 
                     coordsOfCurrentChar = coordsOfNextButton;
                 }
 
                 // Now, to add to complexity score
+                Console.WriteLine(state.KeyPresses);
+                Console.WriteLine(state.KeyPresses.Length);
                 var numericalPartOfCode = int.Parse(code[..3]);
                 complexityScore += numericalPartOfCode * buttonPressCount;
             }
@@ -82,60 +97,68 @@ namespace AdventOfCode2024.Days
         }
 
         private static long GetButtonPressedCount(
-            char buttonToPress,
             int depth,
             Dictionary<(char, int), long> memoStore,
-            State state)
+            State state,
+            string buttonsToPress)
         {
             if (depth == 0)
             {
-                state.KeyPresses += buttonToPress;
-                return 1L;
+                state.KeyPresses += buttonsToPress;
+                return buttonsToPress.Length;
             }
 
             // Try getting memo'd value
-            if (memoStore.TryGetValue((buttonToPress, depth), out long memoValue))
-                return memoValue;
+            //if (memoStore.TryGetValue((buttonToPress, depth), out long memoValue))
+            //    return memoValue;
 
-            // We have been fed a char we need to get to, let's go there
-            var buttonCoords = DirectionPadButtonToCoord[buttonToPress];
-            var aButtonCoords = DirectionPadButtonToCoord['A'];
+            // We have been fed chars we need to get to, let's do it
+            var currentButtonCoords = DirectionPadButtonToCoord['A'];
             var totalButtonPresses = 0L;
 
-            var diffRow = buttonCoords.Item1 - aButtonCoords.Item1;
-            var diffCol = buttonCoords.Item2 - aButtonCoords.Item2;
-
-            // Move down if need be. diffRow is either 0 or 1.
-            if (diffRow == 1)
+            foreach (var buttonToPress in buttonsToPress)
             {
-                totalButtonPresses += GetButtonPressedCount('v', depth - 1, memoStore, state);
-            }
-            // Move left if need be
-            if (diffCol < 0)
-            {
-                totalButtonPresses += (-1 * diffCol)*GetButtonPressedCount('<', depth - 1, memoStore, state);
-            }
+                var nextButtonCoords = DirectionPadButtonToCoord[buttonToPress];
+                var diffRow = nextButtonCoords.Item1 - currentButtonCoords.Item1;
+                var diffCol = nextButtonCoords.Item2 - currentButtonCoords.Item2;
 
-            // Press A (which presses the movement button in _this_ context)
-            totalButtonPresses += GetButtonPressedCount('A', depth - 1, memoStore, state);
+                var buttonsToPressStr = string.Empty;
 
-            // Move back to the right if need be
-            if (diffCol < 0)
-            {
-                totalButtonPresses += (-1 * diffCol) * GetButtonPressedCount('>', depth - 1, memoStore, state);
-            }
-            // Move up if need be. diffRow is either 0 or 1.
-            if (diffRow == 1)
-            {
-                totalButtonPresses += GetButtonPressedCount('^', depth - 1, memoStore, state);
-            }
+                // If need to move down, do so first
+                if (diffRow > 0)
+                {
+                    buttonsToPressStr += new string([.. Enumerable.Repeat('v', diffRow)]);
+                }
 
-            // Press A (which presses the 'A' button in _this_ context)
-            totalButtonPresses += GetButtonPressedCount('A', depth - 1, memoStore, state);
+                // Move horizontal
+                if (diffCol < 0)
+                {
+                    var count = -diffCol;
+                    buttonsToPressStr += new string([.. Enumerable.Repeat('<', count)]);
+                }
+                else if (diffCol > 0)
+                {
+                    buttonsToPressStr += new string([.. Enumerable.Repeat('>', diffCol)]);
+                }
+
+                // If need to move up, do so last
+                if (diffRow < 0)
+                {
+                    var count = -diffRow;
+                    buttonsToPressStr += new string([.. Enumerable.Repeat('^', count)]);
+                }
+
+                // Press A
+                buttonsToPressStr += 'A';
+
+                totalButtonPresses += GetButtonPressedCount(depth - 1, memoStore, state, buttonsToPressStr);
+
+                currentButtonCoords = nextButtonCoords;
+            }
 
             // Add to store, if not done already
-            if (!memoStore.ContainsKey((buttonToPress, depth)))
-                memoStore[(buttonToPress, depth)] = totalButtonPresses;
+            //if (!memoStore.ContainsKey((buttonToPress, depth)))
+            //    memoStore[(buttonToPress, depth)] = totalButtonPresses;
 
             return totalButtonPresses;
         }
