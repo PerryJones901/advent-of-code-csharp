@@ -47,7 +47,7 @@ namespace AdventOfCode2024.Days
                     var coordsOfNextButton = NumPadButtonToCoord[buttonToPress];
                     var diffRow = coordsOfNextButton.Item1 - coordsOfCurrentChar.Item1;
                     var diffCol = coordsOfNextButton.Item2 - coordsOfCurrentChar.Item2;
-                    var buttonsToPressOnNextDirPad = GetUpPrioButtonsToPress(diffRow, diffCol);
+                    var buttonsToPressOnNextDirPad = GetButtonsToPress(diffRow, diffCol, priorityDirection: VerticalDirection.Up);
                     var buttonsToPressOnHumanDirPadCount = GetMostEfficientButtonPressesCount(depth, memoStore, buttonsToPressOnNextDirPad);
 
                     // Now, need to see if possible through alt route. (i.e. down prio)
@@ -59,7 +59,8 @@ namespace AdventOfCode2024.Days
                     if (!altPassesThrough30)
                     {
                         // Attempt alt path
-                        var buttonsToPressOnNextDirPadAlt = GetDownPrioButtonsToPress(diffRow, diffCol);
+                        var buttonsToPressOnNextDirPadAlt = GetButtonsToPress(
+                            diffRow, diffCol, priorityDirection: VerticalDirection.Down);
                         var buttonsToPressOnHumanDirPadCountAlt = GetMostEfficientButtonPressesCount(depth, memoStore, buttonsToPressOnNextDirPadAlt);
 
                         buttonsToPressOnHumanDirPadCount = new List<long>([
@@ -90,11 +91,9 @@ namespace AdventOfCode2024.Days
             if (depth == 0)
                 return buttonsToPress.Length;
 
-            // Check memo
             if (memoStore.TryGetValue((buttonsToPress, depth), out var memoCount))
                 return memoCount;
 
-            // We have been fed chars we need to get to, let's do it
             var currentButtonCoords = DirectionPadButtonToCoord['A'];
             var totalButtonPressesCount = 0L;
 
@@ -104,7 +103,8 @@ namespace AdventOfCode2024.Days
                 var diffRow = nextButtonCoords.Item1 - currentButtonCoords.Item1;
                 var diffCol = nextButtonCoords.Item2 - currentButtonCoords.Item2;
 
-                var buttonsToPressStr = GetDownPrioButtonsToPress(diffRow, diffCol);
+                var buttonsToPressStr = GetButtonsToPress(
+                    diffRow, diffCol, priorityDirection: VerticalDirection.Down);
 
                 // Need to decide on if we want the alt included.
                 // If the alt path goes through the forbidden (0, 0) space, we cannot take it.
@@ -113,7 +113,7 @@ namespace AdventOfCode2024.Days
                 var buttonPressesCount = GetMostEfficientButtonPressesCount(depth - 1, memoStore, buttonsToPressStr);
                 if (currentButtonCoords != (1, 0) && nextButtonCoords != (1, 0))
                 {
-                    var altButtonsToPressStr = GetUpPrioButtonsToPress(diffRow, diffCol);
+                    var altButtonsToPressStr = GetButtonsToPress(diffRow, diffCol, priorityDirection: VerticalDirection.Up);
                     var altButtonPressesCount = GetMostEfficientButtonPressesCount(depth - 1, memoStore, altButtonsToPressStr);
                     buttonPressesCount = new List<long>([buttonPressesCount, altButtonPressesCount]).Min();
                 }
@@ -130,74 +130,34 @@ namespace AdventOfCode2024.Days
             return totalButtonPressesCount;
         }
 
-        private static string GetDownPrioButtonsToPress(int diffRow, int diffCol)
+        private static string GetButtonsToPress(int diffRow, int diffCol, VerticalDirection priorityDirection)
         {
-            // Going down takes prio here
-            var buttonsToPressStr = string.Empty;
+            // Take vertical string (e.g. "^^^^" or "v") and horizontal string (e.g. "<" or ">>")
+            //  Then, decide which to take first (based on prio).
 
-            // If need to move down, do so first
-            if (diffRow > 0)
-            {
-                buttonsToPressStr += new string([.. Enumerable.Repeat('v', diffRow)]);
-            }
+            var isVerticalFirst = priorityDirection == VerticalDirection.Down
+                ? diffRow > 0
+                : diffRow < 0;
 
-            // Move horizontal
-            if (diffCol < 0)
-            {
-                var count = -diffCol;
-                buttonsToPressStr += new string([.. Enumerable.Repeat('<', count)]);
-            }
-            else if (diffCol > 0)
-            {
-                buttonsToPressStr += new string([.. Enumerable.Repeat('>', diffCol)]);
-            }
+            var verticalString = diffRow > 0
+                ? new string([.. Enumerable.Repeat('v', diffRow)])
+                : new string([.. Enumerable.Repeat('^', -diffRow)]);
 
-            // If need to move up, do so last
-            if (diffRow < 0)
-            {
-                var count = -diffRow;
-                buttonsToPressStr += new string([.. Enumerable.Repeat('^', count)]);
-            }
+            var horizontalString = diffCol < 0
+                ? new string([.. Enumerable.Repeat('<', -diffCol)])
+                : new string([.. Enumerable.Repeat('>', diffCol)]);
 
-            // Press A
-            buttonsToPressStr += 'A';
+            var buttonsToPressStr = isVerticalFirst
+                ? $"{verticalString}{horizontalString}A"
+                : $"{horizontalString}{verticalString}A";
 
             return buttonsToPressStr;
         }
 
-        private static string GetUpPrioButtonsToPress(int diffRow, int diffCol)
+        private enum VerticalDirection
         {
-            // Up takes priority here
-            var buttonsToPressStr = string.Empty;
-
-            // If need to move up, do so first
-            if (diffRow < 0)
-            {
-                var count = -diffRow;
-                buttonsToPressStr += new string([.. Enumerable.Repeat('^', count)]);
-            }
-
-            // Move horizontal
-            if (diffCol < 0)
-            {
-                var count = -diffCol;
-                buttonsToPressStr += new string([.. Enumerable.Repeat('<', count)]);
-            }
-            else if (diffCol > 0)
-            {
-                buttonsToPressStr += new string([.. Enumerable.Repeat('>', diffCol)]);
-            }
-
-            // If need to move down, do so last
-            if (diffRow > 0)
-            {
-                buttonsToPressStr += new string([.. Enumerable.Repeat('v', diffRow)]);
-            }
-
-            // Press A
-            buttonsToPressStr += 'A';
-
-            return buttonsToPressStr;
+            Up,
+            Down
         }
 
         private string[] GetInput()
