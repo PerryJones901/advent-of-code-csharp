@@ -40,12 +40,11 @@ namespace AdventOfCode2024.Days
         private static long GetComplexitySum(string[] codes, int depth)
         {
             var complexityScore = 0L;
-            var memoStore = new Dictionary<(char, int), long>();
+            var memoStore = new Dictionary<(string, int), long>();
 
             foreach (var code in codes)
             {
                 var buttonPressCount = 0L;
-                var buttonsToPressOnHumanDirPadAltogether = string.Empty;
                 var coordsOfCurrentChar = NumPadButtonToCoord['A'];
 
                 foreach (var buttonToPress in code)
@@ -54,7 +53,7 @@ namespace AdventOfCode2024.Days
                     var diffRow = coordsOfNextButton.Item1 - coordsOfCurrentChar.Item1;
                     var diffCol = coordsOfNextButton.Item2 - coordsOfCurrentChar.Item2;
                     var buttonsToPressOnNextDirPad = GetUpPrioButtonsToPress(diffRow, diffCol);
-                    var buttonsToPressOnHumanDirPad = GetMostEfficientButtonPresses(depth, memoStore, buttonsToPressOnNextDirPad);
+                    var buttonsToPressOnHumanDirPadCount = GetMostEfficientButtonPressesCount(depth, memoStore, buttonsToPressOnNextDirPad);
 
                     // Now, need to see if possible through alt route. (i.e. down prio)
                     // if (3, 0) will be passed in alt route, we cannot take it. Otherwise, take it.
@@ -66,22 +65,20 @@ namespace AdventOfCode2024.Days
                     {
                         // Attempt alt path
                         var buttonsToPressOnNextDirPadAlt = GetDownPrioButtonsToPress(diffRow, diffCol);
-                        var buttonsToPressOnHumanDirPadAlt = GetMostEfficientButtonPresses(depth, memoStore, buttonsToPressOnNextDirPadAlt);
+                        var buttonsToPressOnHumanDirPadCountAlt = GetMostEfficientButtonPressesCount(depth, memoStore, buttonsToPressOnNextDirPadAlt);
 
-                        buttonsToPressOnHumanDirPad = new List<string>([
-                            buttonsToPressOnHumanDirPad,
-                            buttonsToPressOnHumanDirPadAlt
-                        ]).MinBy(x => x.Length);
+                        buttonsToPressOnHumanDirPadCount = new List<long>([
+                            buttonsToPressOnHumanDirPadCount,
+                            buttonsToPressOnHumanDirPadCountAlt
+                        ]).Min();
                     }
 
-                    buttonPressCount += (buttonsToPressOnHumanDirPad ?? string.Empty).Length;
-                    buttonsToPressOnHumanDirPadAltogether += buttonsToPressOnHumanDirPad;
+                    buttonPressCount += buttonsToPressOnHumanDirPadCount;
 
                     coordsOfCurrentChar = coordsOfNextButton;
                 }
 
                 // Now, to add to complexity score
-                Console.WriteLine(buttonsToPressOnHumanDirPadAltogether);
                 Console.WriteLine(buttonPressCount);
                 var numericalPartOfCode = int.Parse(code[..3]);
                 complexityScore += numericalPartOfCode * buttonPressCount;
@@ -90,17 +87,21 @@ namespace AdventOfCode2024.Days
             return complexityScore;
         }
 
-        private static string GetMostEfficientButtonPresses(
+        private static long GetMostEfficientButtonPressesCount(
             int depth,
-            Dictionary<(char, int), long> memoStore,
+            Dictionary<(string, int), long> memoStore,
             string buttonsToPress)
         {
             if (depth == 0)
-                return buttonsToPress;
+                return buttonsToPress.Length;
+
+            // Check memo
+            if (memoStore.TryGetValue((buttonsToPress, depth), out var memoCount))
+                return memoCount;
 
             // We have been fed chars we need to get to, let's do it
             var currentButtonCoords = DirectionPadButtonToCoord['A'];
-            var allButtonPresses = string.Empty;
+            var totalButtonPressesCount = 0L;
 
             foreach (var buttonToPress in buttonsToPress)
             {
@@ -114,24 +115,24 @@ namespace AdventOfCode2024.Days
                 // If the alt path goes through the forbidden (0, 0) space, we cannot take it.
                 // This occurs if '<' is one of the buttons.
                 // First, run the normal one.
-                var buttonPresses = GetMostEfficientButtonPresses(depth - 1, memoStore, buttonsToPressStr);
+                var buttonPressesCount = GetMostEfficientButtonPressesCount(depth - 1, memoStore, buttonsToPressStr);
                 if (currentButtonCoords != (1, 0) && nextButtonCoords != (1, 0))
                 {
                     var altButtonsToPressStr = GetUpPrioButtonsToPress(diffRow, diffCol);
-                    var altButtonPresses = GetMostEfficientButtonPresses(depth - 1, memoStore, altButtonsToPressStr);
-                    buttonPresses = new List<string>([buttonPresses, altButtonPresses]).MinBy(x => x.Length);
+                    var altButtonPressesCount = GetMostEfficientButtonPressesCount(depth - 1, memoStore, altButtonsToPressStr);
+                    buttonPressesCount = new List<long>([buttonPressesCount, altButtonPressesCount]).Min();
                 }
 
-                allButtonPresses += buttonPresses;
+                totalButtonPressesCount += buttonPressesCount;
 
                 currentButtonCoords = nextButtonCoords;
             }
 
             // Add to store, if not done already
-            //if (!memoStore.ContainsKey((buttonToPress, depth)))
-            //    memoStore[(buttonToPress, depth)] = totalButtonPresses;
+            if (!memoStore.ContainsKey((buttonsToPress, depth)))
+                memoStore[(buttonsToPress, depth)] = totalButtonPressesCount;
 
-            return allButtonPresses;
+            return totalButtonPressesCount;
         }
 
         private static string GetDownPrioButtonsToPress(int diffRow, int diffCol)
