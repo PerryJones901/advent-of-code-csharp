@@ -23,7 +23,6 @@ namespace AdventOfCode2024.Days
 
         public override string Part1()
         {
-            // TOO HIGH: 169612
             var input = GetInput();
             var sum = GetComplexitySum(input, 2);
 
@@ -33,8 +32,9 @@ namespace AdventOfCode2024.Days
         public override string Part2()
         {
             var input = GetInput();
+            var sum = GetComplexitySum(input, 25);
 
-            return "Part 2";
+            return sum.ToString();
         }
 
         private static long GetComplexitySum(string[] codes, int depth)
