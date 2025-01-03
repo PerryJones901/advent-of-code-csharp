@@ -19,7 +19,7 @@ namespace AdventOfCode2024.Days
         public override string Part1()
         {
             var input = GetInput();
-            var sum = GetComplexitySum(input, 2);
+            var sum = GetComplexitySum(input, depth: 2);
 
             return sum.ToString();
         }
@@ -27,7 +27,7 @@ namespace AdventOfCode2024.Days
         public override string Part2()
         {
             var input = GetInput();
-            var sum = GetComplexitySum(input, 25);
+            var sum = GetComplexitySum(input, depth: 25);
 
             return sum.ToString();
         }
@@ -132,27 +132,25 @@ namespace AdventOfCode2024.Days
 
         private static string GetButtonsToPress(int diffRow, int diffCol, VerticalDirection priorityDirection)
         {
-            // Take vertical string (e.g. "^^^^" or "v") and horizontal string (e.g. "<" or ">>")
-            //  Then, decide which to take first (based on prio).
+            // Get buttons to press in each direction
+            var verticalString = GetRepeatedChar(diffRow > 0 ? 'v' : '^', diffRow);
+            var horizontalString = GetRepeatedChar(diffCol > 0 ? '>' : '<', diffCol);
 
+            // Decide if we will press the vertical buttons first
             var isVerticalFirst = priorityDirection == VerticalDirection.Down
                 ? diffRow > 0
                 : diffRow < 0;
 
-            var verticalString = diffRow > 0
-                ? new string([.. Enumerable.Repeat('v', diffRow)])
-                : new string([.. Enumerable.Repeat('^', -diffRow)]);
-
-            var horizontalString = diffCol < 0
-                ? new string([.. Enumerable.Repeat('<', -diffCol)])
-                : new string([.. Enumerable.Repeat('>', diffCol)]);
-
+            // Assemble string, with 'A' pressed at the end
             var buttonsToPressStr = isVerticalFirst
                 ? $"{verticalString}{horizontalString}A"
                 : $"{horizontalString}{verticalString}A";
 
             return buttonsToPressStr;
         }
+
+        private static string GetRepeatedChar(char c, int signedDiff)
+            => new([.. Enumerable.Repeat(c, Math.Abs(signedDiff))]);
 
         private enum VerticalDirection
         {
