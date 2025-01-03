@@ -16,11 +16,6 @@ namespace AdventOfCode2024.Days
             { '<', (1, 0) },    { 'v', (1, 1) }, { '>', (1, 2) },
         };
 
-        private class State
-        {
-            public string KeyPresses { get; set; } = string.Empty;
-        }
-
         public override string Part1()
         {
             var input = GetInput();
