@@ -16,18 +16,13 @@ namespace AdventOfCode2024.Days
             { '<', (1, 0) },    { 'v', (1, 1) }, { '>', (1, 2) },
         };
 
-        public override string Part1()
+        public override string Part1() => GetResult(depth: 2);
+        public override string Part2() => GetResult(depth: 25);
+
+        private string GetResult(int depth)
         {
             var input = GetInput();
-            var sum = GetComplexitySum(input, depth: 2);
-
-            return sum.ToString();
-        }
-
-        public override string Part2()
-        {
-            var input = GetInput();
-            var sum = GetComplexitySum(input, depth: 25);
+            var sum = GetComplexitySum(input, depth);
 
             return sum.ToString();
         }
@@ -39,7 +34,7 @@ namespace AdventOfCode2024.Days
 
             foreach (var code in codes)
             {
-                var buttonPressCount = 0L;
+                var totalHumanPressesCount = 0L;
                 var coordsOfCurrentChar = NumPadButtonToCoord['A'];
 
                 foreach (var buttonToPress in code)
@@ -47,43 +42,45 @@ namespace AdventOfCode2024.Days
                     var coordsOfNextButton = NumPadButtonToCoord[buttonToPress];
                     var diffRow = coordsOfNextButton.Item1 - coordsOfCurrentChar.Item1;
                     var diffCol = coordsOfNextButton.Item2 - coordsOfCurrentChar.Item2;
-                    var buttonsToPressOnNextDirPad = GetButtonsToPress(diffRow, diffCol, priorityDirection: VerticalDirection.Up);
-                    var buttonsToPressOnHumanDirPadCount = GetMostEfficientButtonPressesCount(depth, memoStore, buttonsToPressOnNextDirPad);
 
-                    // Now, need to see if possible through alt route. (i.e. down prio)
-                    // if (3, 0) will be passed in alt route, we cannot take it. Otherwise, take it.
+                    // Get buttons to press on first direction pad
+                    // We prioritise the "Up" direction here, as it will always provide safe inputs (i.e. we won't cross
+                    //  the forbidden empty square in the bottom left)
+                    var buttonsPressedOnNextPad = GetButtonsToPress(
+                        diffRow, diffCol, priorityDirection: VerticalDirection.Up);
 
-                    var altPassesThrough30 = (coordsOfCurrentChar.Item1 == 3 && coordsOfNextButton.Item2 == 0)
+                    var humanPressesCount = GetHumanButtonPressCount(depth, memoStore, buttonsPressedOnNextPad);
+
+                    // Now, if it's safe to so, we can swap the vertical and horizontal ordering.
+                    // This is only safe if the empty space, at (3, 0), will NOT be passed by swapping the order.
+                    // We check if it IS passed by checking if one button coords has row = 3, and the other col = 0.
+
+                    var altPassesThroughEmptySquare = (coordsOfCurrentChar.Item1 == 3 && coordsOfNextButton.Item2 == 0)
                         || (coordsOfCurrentChar.Item2 == 0 && coordsOfNextButton.Item1 == 3);
 
-                    if (!altPassesThrough30)
+                    if (!altPassesThroughEmptySquare)
                     {
-                        // Attempt alt path
-                        var buttonsToPressOnNextDirPadAlt = GetButtonsToPress(
+                        var buttonsPressedOnNextPadAlt = GetButtonsToPress(
                             diffRow, diffCol, priorityDirection: VerticalDirection.Down);
-                        var buttonsToPressOnHumanDirPadCountAlt = GetMostEfficientButtonPressesCount(depth, memoStore, buttonsToPressOnNextDirPadAlt);
+                        var humanPressesCountAlt = GetHumanButtonPressCount(depth, memoStore, buttonsPressedOnNextPadAlt);
 
-                        buttonsToPressOnHumanDirPadCount = new List<long>([
-                            buttonsToPressOnHumanDirPadCount,
-                            buttonsToPressOnHumanDirPadCountAlt
-                        ]).Min();
+                        if (humanPressesCountAlt < humanPressesCount)
+                            humanPressesCount = humanPressesCountAlt;
                     }
 
-                    buttonPressCount += buttonsToPressOnHumanDirPadCount;
+                    totalHumanPressesCount += humanPressesCount;
 
                     coordsOfCurrentChar = coordsOfNextButton;
                 }
 
-                // Now, to add to complexity score
-                Console.WriteLine(buttonPressCount);
                 var numericalPartOfCode = int.Parse(code[..3]);
-                complexityScore += numericalPartOfCode * buttonPressCount;
+                complexityScore += numericalPartOfCode * totalHumanPressesCount;
             }
 
             return complexityScore;
         }
 
-        private static long GetMostEfficientButtonPressesCount(
+        private static long GetHumanButtonPressCount(
             int depth,
             Dictionary<(string, int), long> memoStore,
             string buttonsToPress)
@@ -103,22 +100,28 @@ namespace AdventOfCode2024.Days
                 var diffRow = nextButtonCoords.Item1 - currentButtonCoords.Item1;
                 var diffCol = nextButtonCoords.Item2 - currentButtonCoords.Item2;
 
-                var buttonsToPressStr = GetButtonsToPress(
+                // Get buttons to press on next direction pad
+                // We prioritise the "Down" direction here, as it will always provide safe inputs (i.e. we won't cross
+                //  the forbidden empty square in the top left)
+                var buttonsPressedOnNextPad = GetButtonsToPress(
                     diffRow, diffCol, priorityDirection: VerticalDirection.Down);
+                var humanPressesCount = GetHumanButtonPressCount(depth - 1, memoStore, buttonsPressedOnNextPad);
 
-                // Need to decide on if we want the alt included.
-                // If the alt path goes through the forbidden (0, 0) space, we cannot take it.
-                // This occurs if '<' is one of the buttons.
-                // First, run the normal one.
-                var buttonPressesCount = GetMostEfficientButtonPressesCount(depth - 1, memoStore, buttonsToPressStr);
-                if (currentButtonCoords != (1, 0) && nextButtonCoords != (1, 0))
+                // Now, if it's safe to so, we can swap the vertical and horizontal ordering.
+                // We check if the alt path would pass through the empty square. It is sufficient to check if
+                //  either the current or next button is '<'. In other words, has coords (1, 0).
+                var altPassesThroughEmptySquare = currentButtonCoords == (1, 0) || nextButtonCoords == (1, 0);
+
+                if (!altPassesThroughEmptySquare)
                 {
-                    var altButtonsToPressStr = GetButtonsToPress(diffRow, diffCol, priorityDirection: VerticalDirection.Up);
-                    var altButtonPressesCount = GetMostEfficientButtonPressesCount(depth - 1, memoStore, altButtonsToPressStr);
-                    buttonPressesCount = new List<long>([buttonPressesCount, altButtonPressesCount]).Min();
+                    var buttonsPressedOnNextPadAlt = GetButtonsToPress(
+                        diffRow, diffCol, priorityDirection: VerticalDirection.Up);
+                    var humanPressesCountAlt = GetHumanButtonPressCount(depth - 1, memoStore, buttonsPressedOnNextPadAlt);
+                    if (humanPressesCountAlt < humanPressesCount)
+                        humanPressesCount = humanPressesCountAlt;
                 }
 
-                totalButtonPressesCount += buttonPressesCount;
+                totalButtonPressesCount += humanPressesCount;
 
                 currentButtonCoords = nextButtonCoords;
             }
