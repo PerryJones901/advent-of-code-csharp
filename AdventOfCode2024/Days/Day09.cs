@@ -8,11 +8,7 @@ namespace AdventOfCode2024.Days
         public override string Part1()
         {
             var input = GetInput();
-            var diskInfos = input.ToCharArray().Select((c, index) => new DiskInfo
-            {
-                Id = index % 2 == 0 ? index / 2 : null,
-                Size = int.Parse(c.ToString())
-            }).ToList();
+            var diskInfos = GetDiskInfosFromInput(input);
             var diskSize = diskInfos.Sum(x => x.Size);
 
             var files = diskInfos.Where(d => d.Id.HasValue).ToList();
@@ -73,83 +69,59 @@ namespace AdventOfCode2024.Days
 
         public override string Part2()
         {
-            // TOO LOW: 4456112330
             var input = GetInput();
-            var diskInfos = input.ToCharArray().Select((c, index) => new DiskInfo
+            var diskInfos = GetDiskInfosFromInput(input);
+
+            RemoveEmptySpaces(diskInfos);
+            CombineFreeSpaces(diskInfos);
+
+            while (true)
             {
-                Id = index % 2 == 0 ? index / 2 : null,
-                Size = int.Parse(c.ToString())
-            }).ToList();
+                var lastFileIndex = diskInfos.FindLastIndex(x => x.Id.HasValue && !x.IsProcessed);
+                if (lastFileIndex == -1)
+                    break;
 
-            // InitIndexOnDrive
-            var currentDiskInd = 0;
-            foreach (var diskI in diskInfos)
-            {
-                diskI.IndexOnDrive = currentDiskInd;
-                currentDiskInd += diskI.Size;
-            }
+                var lastFile = diskInfos[lastFileIndex];
 
-            var newDiskInfos = diskInfos.ToList();
-            var reverseFiles = diskInfos.Where(x => x.Id.HasValue).ToList();
-            reverseFiles.Reverse();
-
-            // In each iter, go from furthest right file, and see if there's a space for it near beginning
-            // If so, place it there (by removing free space, placing file then any spare space left)
-            // Keep going down file list
-            // Now, make sure we always move file LEFT and never RIGHT
-            foreach (var file in reverseFiles)
-            {
-                var currentDiskIndex = 0;
-
-                for (var index = 0; index < newDiskInfos.Count; index++)
+                var firstSpaceBigEnoughIndex = diskInfos.FindIndex(x => !x.Id.HasValue && x.Size >= lastFile.Size);
+                if (firstSpaceBigEnoughIndex != -1 && firstSpaceBigEnoughIndex < lastFileIndex)
                 {
-                    var item = newDiskInfos[index];
+                    // Move the file
+                    var freeSpace = diskInfos[firstSpaceBigEnoughIndex];
 
-                    // If too far, break;
-                    if (item.IndexOnDrive < currentDiskIndex)
-                        break;
-
-                    // If NOT free space, continue
-                    if (item.Id.HasValue)
+                    // Old file position is now a free space
+                    diskInfos[lastFileIndex] = new DiskInfo
                     {
-                        currentDiskIndex += item.Size;
-                        continue;
-                    }
-                    // If next file is size 0, need to do more logic, so throw for now
-                    if (index < diskInfos.Count - 1 && newDiskInfos[index + 1].Size == 0)
-                        throw new Exception("File size of 0 here");
+                        Id = null,
+                        Size = lastFile.Size,
+                    };
 
-                    // Now, check for enough free space
-                    if (file.Size <= item.Size)
+                    diskInfos[firstSpaceBigEnoughIndex] = lastFile;
+
+                    // Is there space left? If so, add it
+                    var remainingSpace = freeSpace.Size - lastFile.Size;
+                    if (remainingSpace > 0)
                     {
-                        // We have enough! Let's move
-                        newDiskInfos[index] = file;
-                        newDiskInfos[index].IndexOnDrive = currentDiskIndex;
-
-                        var freeSpaceDiff = item.Size - file.Size;
-                        if (freeSpaceDiff > 0)
+                        diskInfos.Insert(firstSpaceBigEnoughIndex + 1, new DiskInfo
                         {
-                            newDiskInfos.Insert(index + 1, new DiskInfo {
-                                Size = freeSpaceDiff,
-                                IndexOnDrive = currentDiskIndex + file.Size,
-                            });
-                        }
+                            Id = null,
+                            Size = freeSpace.Size - lastFile.Size,
+                        });
 
-                        // TODO: Now. to remove original, and to merge any empty spaces
-
-                        currentDiskIndex += item.Size;
-
-                        break;
+                        CombineFreeSpaces(diskInfos);
                     }
                 }
+
+                lastFile.IsProcessed = true;
             }
 
             var checksum = 0L;
             var driveIndex = 0;
-            foreach (var diskInfo in newDiskInfos)
+            foreach (var diskInfo in diskInfos)
             {
                 if (diskInfo.Id is not null)
-                    checksum += (driveIndex * diskInfo.Size) + (diskInfo.Size) * (diskInfo.Size - 1) / 2;
+                    for (int i = 0; i < diskInfo.Size; i++)
+                        checksum += (long)diskInfo.Id * (driveIndex + i);
 
                 driveIndex += diskInfo.Size;
             }
@@ -157,13 +129,51 @@ namespace AdventOfCode2024.Days
             return checksum.ToString();
         }
 
-        [DebuggerDisplay("Id:{Id},Size:{Size}")]
+        private static List<DiskInfo> GetDiskInfosFromInput(string input)
+        {
+            return input.ToCharArray().Select((c, index) => new DiskInfo
+            {
+                Id = index % 2 == 0 ? index / 2 : null,
+                Size = int.Parse(c.ToString())
+            }).ToList();
+        }
+
+        private static void RemoveEmptySpaces(List<DiskInfo> diskInfos)
+        {
+            for (var index = 0; index < diskInfos.Count; index++)
+            {
+                var item = diskInfos[index];
+
+                if (item.Size > 0)
+                    continue;
+
+                diskInfos.RemoveAt(index);
+                index--;
+            }
+        }
+
+        private static void CombineFreeSpaces(List<DiskInfo> diskInfos)
+        {
+            for (var index = 0; index < diskInfos.Count - 1; index++)
+            {
+                var item = diskInfos[index];
+                var nextItem = diskInfos[index + 1];
+                if (!item.Id.HasValue && !nextItem.Id.HasValue)
+                {
+                    item.Size += nextItem.Size;
+                    diskInfos.RemoveAt(index + 1);
+                    index--;
+                }
+            }
+        }
+
+        [DebuggerDisplay("Id:{Id},Size:{Size},IsProcessed:{IsProcessed}")]
         private class DiskInfo
         {
             // If null, it's free space
             public int? Id { get; set; }
             public int Size { get; set; }
-            public int? IndexOnDrive { get; set; } = null;
+            public bool IsProcessed { get; set; } = false;
         }
 
         private string GetInput()
