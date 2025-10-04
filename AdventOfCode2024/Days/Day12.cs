@@ -13,7 +13,10 @@ namespace AdventOfCode2024.Days
             (0, -1),
         }.AsReadOnly();
 
-        public override string Part1()
+        public override string Part1() => GetPrice(PartNumber.One);
+        public override string Part2() => GetPrice(PartNumber.Two);
+
+        private string GetPrice(PartNumber partNumber)
         {
             var input = GetInput();
             var height = input.Length;
@@ -22,113 +25,44 @@ namespace AdventOfCode2024.Days
             var coordsToPlantGroupId = new Dictionary<(int, int), int>();
             var plantGroupIdToFenceCount = new Dictionary<int, int>();
 
-            for (var row = 0; row < height; row++)
+            foreach (var searchCoords in GetAllGridCoords(height, width))
             {
-                for (var col = 0; col < width; col++)
+                if (coordsToPlantGroupId.ContainsKey(searchCoords)) continue;
+
+                var regionCoordsToProcess = new Queue<(int, int)>([searchCoords]);
+                var cornerCount = 0;
+
+                while (regionCoordsToProcess.Count > 0)
                 {
-                    var currentCoord = (row, col);
-                    if (!coordsToPlantGroupId.ContainsKey(currentCoord))
-                    {
-                        var coordQueue = new Queue<(int, int)>([currentCoord]);
-                        var fenceCount = 0;
+                    var currentCoords = regionCoordsToProcess.Dequeue();
 
-                        while (coordQueue.Count > 0)
-                        {
-                            var searchCoord = coordQueue.Dequeue();
-                            coordsToPlantGroupId[searchCoord] = currentId;
-                            fenceCount += GetFenceCount(searchCoord.Item1, searchCoord.Item2, input, coordsToPlantGroupId, coordQueue);
-                        }
-
-                        plantGroupIdToFenceCount.Add(currentId, fenceCount);
-                        currentId++;
-                    }
+                    coordsToPlantGroupId[currentCoords] = currentId;
+                    cornerCount += GetFenceCount(
+                        partNumber,
+                        currentCoords.Item1,
+                        currentCoords.Item2,
+                        input,
+                        coordsToPlantGroupId,
+                        regionCoordsToProcess);
                 }
+
+                plantGroupIdToFenceCount.Add(currentId, cornerCount);
+                currentId++;
             }
 
             var plantGroupIdToPlantCount = coordsToPlantGroupId
                 .GroupBy(kvp => kvp.Value)
                 .ToDictionary(g => g.Key, g => g.Count());
 
-            var price = plantGroupIdToFenceCount.Aggregate(0, (current, kvp) => current + kvp.Value * plantGroupIdToPlantCount[kvp.Key]);
-
-            return price.ToString();
-        }
-
-        public override string Part2()
-        {
-            var input = GetInput();
-            var height = input.Length;
-            var width = input[0].Length;
-            var currentId = 0;
-            var coordsToPlantGroupId = new Dictionary<(int, int), int>();
-            var plantGroupIdToFenceCount = new Dictionary<int, int>();
-
-            for (var row = 0; row < height; row++)
-            {
-                for (var col = 0; col < width; col++)
-                {
-                    var currentCoord = (row, col);
-                    if (!coordsToPlantGroupId.ContainsKey(currentCoord))
-                    {
-                        var spaceQueue = new Queue<(int, int)>([currentCoord]);
-                        var cornerCount = 0;
-
-                        while (spaceQueue.Count > 0)
-                        {
-                            var searchCoord = spaceQueue.Dequeue();
-
-                            coordsToPlantGroupId[searchCoord] = currentId;
-                            cornerCount += GetCornerCount(searchCoord.Item1, searchCoord.Item2, input, coordsToPlantGroupId, spaceQueue);
-                        }
-
-                        plantGroupIdToFenceCount.Add(currentId, cornerCount);
-                        currentId++;
-                    }
-                }
-            }
-
-            var plantGroupIdToPlantCount = coordsToPlantGroupId
-                .GroupBy(kvp => kvp.Value)
-                .ToDictionary(g => g.Key, g => g.Count());
-
-            var price = plantGroupIdToFenceCount.Aggregate(0, (current, kvp) => current + kvp.Value * plantGroupIdToPlantCount[kvp.Key]);
+            var price = plantGroupIdToFenceCount.Sum(
+                (kvp) => kvp.Value * plantGroupIdToPlantCount[kvp.Key]
+            );
 
             return price.ToString();
         }
 
         private static int GetFenceCount(
-            int row,
-            int col,
-            string[] input,
-            Dictionary<(int, int), int> coordsToPlantGroupId,
-            Queue<(int, int)> spaceQueue)
-        {
-            var currentSpaceChar = input[row][col];
-            var fenceCount = 0;
-
-            foreach (var (rowDiff, colDiff) in DiffValues)
-            {
-                var newRow = row + rowDiff;
-                var newCol = col + colDiff;
-
-                if (newRow < 0 || newRow >= input.Length || newCol < 0 || newCol >= input[0].Length)
-                {
-                    fenceCount++;
-                    continue;
-                }
-
-                var newSpaceChar = input[newRow][newCol];
-
-                if (newSpaceChar != currentSpaceChar)
-                    fenceCount++;
-                else if (!coordsToPlantGroupId.ContainsKey((newRow, newCol)) && !spaceQueue.Contains((newRow, newCol)))
-                    spaceQueue.Enqueue((newRow, newCol));
-            }
-
-            return fenceCount;
-        }
-
-        private static int GetCornerCount(
+            PartNumber partNumber,
             int row,
             int col,
             string[] input,
@@ -155,10 +89,11 @@ namespace AdventOfCode2024.Days
                 if (newSpaceChar != currentSpaceChar)
                     diffValuesWithFence.Add((rowDiff, colDiff));
                 else if (!coordsToPlantGroupId.ContainsKey((newRow, newCol)) && !spaceQueue.Contains((newRow, newCol)))
-                {
                     spaceQueue.Enqueue((newRow, newCol));
-                }
             }
+
+            if (partNumber == PartNumber.One)
+                return diffValuesWithFence.Count;
 
             for (var diffValueIndex = 0; diffValueIndex < DiffValues.Count; diffValueIndex++)
             {
@@ -171,11 +106,10 @@ namespace AdventOfCode2024.Days
                 // Check for indirect corner
                 else if (!diffValuesWithFence.Contains(firstDiffValue) && !diffValuesWithFence.Contains(secondDiffValue))
                 {
-                    var newNewRow = row + firstDiffValue.Item1 + secondDiffValue.Item1;
-                    var newNewCol = col + firstDiffValue.Item2 + secondDiffValue.Item2;
+                    var indirectCornerRow = row + firstDiffValue.Item1 + secondDiffValue.Item1;
+                    var indirectCornerCol = col + firstDiffValue.Item2 + secondDiffValue.Item2;
 
-                    // We should always be in bounds here
-                    if (currentSpaceChar != input[newNewRow][newNewCol])
+                    if (currentSpaceChar != input[indirectCornerRow][indirectCornerCol])
                         cornerCount++;
                 }
             }
@@ -183,9 +117,19 @@ namespace AdventOfCode2024.Days
             return cornerCount;
         }
 
-        private string[] GetInput()
+        private enum PartNumber
         {
-            return FileInputAssistant.GetStringArrayFromFile(TextInputFilePath);
+            One,
+            Two
         }
+
+        private static IEnumerable<(int, int)> GetAllGridCoords(int rowCount, int colCount)
+        {
+            for (int rowIndex = 0; rowIndex < rowCount; rowIndex++)
+                for (int columnIndex = 0; columnIndex < colCount; columnIndex++)
+                    yield return (rowIndex, columnIndex);
+        }
+
+        private string[] GetInput() => FileInputAssistant.GetStringArrayFromFile(TextInputFilePath);
     }
 }
