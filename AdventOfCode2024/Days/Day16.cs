@@ -19,6 +19,63 @@ namespace AdventOfCode2024.Days
         public override string Part1()
         {
             var input = GetInput();
+            var reindeerStateToScore = GetReindeerStateToScoreMap(input);
+            var positionOfE = GetPositionOfChar(input, charToFind: 'E');
+            var minScore = GetMinScoreAtPosition(reindeerStateToScore, positionOfE);
+
+            return minScore.ToString();
+        }
+
+        public override string Part2()
+        {
+            var input = GetInput();
+            var reindeerStateToScore = GetReindeerStateToScoreMap(input);
+            var positionOfE = GetPositionOfChar(input, charToFind: 'E');
+            var minScore = GetMinScoreAtPosition(reindeerStateToScore, positionOfE);
+
+            var statesAtE = reindeerStateToScore.Where(x => x.Key.Position == positionOfE).Select(x => x.Key);
+            var statesAtEWithBestScore = statesAtE.Where(x => reindeerStateToScore[x] == minScore);
+
+            var queue = new Queue<ReindeerState>(statesAtEWithBestScore);
+            var bestStates = new HashSet<ReindeerState>(statesAtEWithBestScore);
+
+            while (queue.Count > 0)
+            {
+                var state = queue.Dequeue();
+                var currentScore = reindeerStateToScore[state];
+
+                var rotationTargetScore = currentScore - 1000;
+                var moveTargetScore = currentScore - 1;
+
+                var statesWithScoresToCheck = new[] {
+                    (state: state.ToClockwise(), targetScore: rotationTargetScore),
+                    (state: state.ToAntiClockwise(), targetScore: rotationTargetScore),
+                    (state: state.ToMoveBackward(), targetScore: moveTargetScore),
+                };
+
+                foreach (var (stateToCheck, targetScore) in statesWithScoresToCheck)
+                {
+                    if (
+                        reindeerStateToScore.TryGetValue(stateToCheck, out int storedScore)
+                        && storedScore == targetScore
+                        && !bestStates.Contains(stateToCheck))
+                    {
+                        bestStates.Add(stateToCheck);
+                        queue.Enqueue(stateToCheck);
+                    }
+                }
+            }
+
+            var bestSpacesCount = bestStates
+                .Select(x => x.Position)
+                .Distinct()
+                .Count();
+
+            return bestSpacesCount.ToString();
+        }
+
+        private static Dictionary<ReindeerState, int> GetReindeerStateToScoreMap(char[][] input)
+        {
             var positionOfS = GetPositionOfChar(input, charToFind: 'S');
             var initialState = new ReindeerState
             {
@@ -38,93 +95,50 @@ namespace AdventOfCode2024.Days
                 var reindeer = prioQueue.Dequeue();
                 var currentScore = reindeerStateToScore[reindeer];
 
-                // Now, find all possible actions, compare with their values in dict, and if different, add to queue.
-                // First: rotate 90CW
+                var newScoreWhenRotated = currentScore + 1000;
+                var statesToCheck = new List<ReindeerState>([
+                    reindeer.ToClockwise(),
+                    reindeer.ToAntiClockwise()
+                ]);
 
-                var reindeerStateCW = reindeer.ToClockwise();
-                var reindeerStateACW = reindeer.ToAntiClockwise();
-                var newScore = currentScore + 1000;
-
-                if (!reindeerStateToScore.TryGetValue(reindeerStateCW, out int storedScoreCW) || newScore < storedScoreCW)
+                foreach (var state in statesToCheck)
                 {
-                    // We have a better score. Upsert it in dict and add to queue.
-                    reindeerStateToScore[reindeerStateCW] = newScore;
-                    prioQueue.Enqueue(reindeerStateCW, newScore);
-                }
-
-                if (!reindeerStateToScore.TryGetValue(reindeerStateACW, out int storedScoreACW) || newScore < storedScoreACW)
-                {
-                    // We have a better score. Upsert it in dict and add to queue.
-                    reindeerStateToScore[reindeerStateACW] = newScore;
-                    prioQueue.Enqueue(reindeerStateACW, newScore);
+                    if (!reindeerStateToScore.TryGetValue(state, out int storedScore) || newScoreWhenRotated < storedScore)
+                    {
+                        reindeerStateToScore[state] = newScoreWhenRotated;
+                        prioQueue.Enqueue(state, newScoreWhenRotated);
+                    }
                 }
 
                 // Now, check if in front of us is a '.'. If so, we can move forward.
                 var reindeerStateMoveForward = reindeer.ToMoveForward();
-                var newScoreForMove = currentScore + 1;
+                var newScoreWhenMovedForward = currentScore + 1;
                 var charInFront = input[reindeerStateMoveForward.Position.Item1][reindeerStateMoveForward.Position.Item2];
 
-                if (charInFront == '.' || charInFront == 'E')
+                if (
+                    (charInFront == '.' || charInFront == 'E')
+                    && (!reindeerStateToScore.TryGetValue(reindeerStateMoveForward, out int storedScoreMove) || newScoreWhenMovedForward < storedScoreMove)
+                )
                 {
-                    // We can move forward. Now to check...
-                    if (!reindeerStateToScore.TryGetValue(reindeerStateMoveForward, out int storedScoreMove) || newScoreForMove < storedScoreMove)
-                    {
-                        // We have a better score. Upsert it in dict and add to queue.
-                        reindeerStateToScore[reindeerStateMoveForward] = newScoreForMove;
+                    reindeerStateToScore[reindeerStateMoveForward] = newScoreWhenMovedForward;
 
-                        // Only add to queue if it's a '.'
-
-                        if (charInFront == '.')
-                            prioQueue.Enqueue(reindeerStateMoveForward, newScoreForMove);
-                    }
+                    if (charInFront == '.')
+                        prioQueue.Enqueue(reindeerStateMoveForward, newScoreWhenMovedForward);
                 }
             }
 
-            var positionOfE = GetPositionOfChar(input, charToFind: 'E');
-            var minScore = reindeerStateToScore.Where(x => x.Key.Position == positionOfE).Select(x => x.Value).Min();
-
-            return minScore.ToString();
+            return reindeerStateToScore;
         }
 
-        public override string Part2()
+        private static int GetMinScoreAtPosition(
+            Dictionary<ReindeerState, int> reindeerStateToScore,
+            (int, int) position)
         {
-            return "";
+            return reindeerStateToScore
+                .Where(x => x.Key.Position == position)
+                .Select(x => x.Value)
+                .Min();
         }
-
-        /*
-         * Need to revisit Part 2.
-         *
-         */
-        //private static bool IsOnBestPath(
-        //    ReindeerState state,
-        //    int searchScore,
-        //    HashSet<(int, int)> tilesOnABestPath,
-        //    char[][] input,
-        //    Dictionary<ReindeerState, int> statesToScore,
-        //    (int, int) endCoords)
-        //{
-        //    // Check all 3 possible paths. If at least one returns true, it's linked to the end, add to set.
-
-        //    // 0. Need to have good score.
-        //    if (searchScore != statesToScore[state]) return false;
-
-        //    // 1. If state's position is already on best path, return true
-        //    if (tilesOnABestPath.Contains(state.Position)) return true;
-
-        //    // 2. If at end with smallest score, return true.
-        //    if (searchScore != statesToScore[state]) return false;
-
-        //    // 3. Otherwise, call function iteratively
-        //    var forwardState = state.ToMoveForward();
-        //    var cwState = state.ToClockwise();
-        //    var acwState = state.ToAntiClockwise();
-
-        //    if (tilesOnABestPath.Contains(forwardState.Position))
-        //    {
-        //        tilesOnABestPath.Add(state.Position);
-        //        return true;
-        //    }
-        //}
 
         [DebuggerDisplay("Pos=({Position}), Dir=({Direction})")]
         private struct ReindeerState
@@ -176,23 +190,16 @@ namespace AdventOfCode2024.Days
         private static (int, int) GetPositionOfChar(char[][] grid, char charToFind)
         {
             for (int row = 0; row < grid.Length; row++)
-            {
                 for (int col = 0; col < grid[0].Length; col++)
-                {
                     if (grid[row][col] == charToFind)
                         return (row, col);
-                }
-            }
 
             throw new Exception($"Char '{charToFind}' could not be found.");
         }
 
         private char[][] GetInput()
-        {
-            var inputAsStringArray = FileInputAssistant.GetStringArrayFromFile(TextInputFilePath);
-            var charArrays = inputAsStringArray.Select(x => x.ToCharArray()).ToArray();
-
-            return charArrays;
-        }
+            => FileInputAssistant.GetStringArrayFromFile(TextInputFilePath)
+                .Select(x => x.ToCharArray())
+                .ToArray();
     }
 }
