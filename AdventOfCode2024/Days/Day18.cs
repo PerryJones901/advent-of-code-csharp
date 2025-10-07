@@ -34,17 +34,14 @@ namespace AdventOfCode2024.Days
                     var neighbourRow = position.Item1 + diffRow;
                     var neighbourCol = position.Item2 + diffCol;
 
-                    // Check if out of bounds
                     if (neighbourRow < 0 || neighbourRow >= GRID_DIMENSION || neighbourCol < 0 || neighbourCol >= GRID_DIMENSION)
                         continue;
 
                     var neighbourPosition = (neighbourRow, neighbourCol);
 
-                    // Needs to be still in remainingCoords
                     if (!remainingCoords.Contains(neighbourPosition))
                         continue;
 
-                    // Decide if distance is shorter
                     var tempDist = dist[position] == int.MaxValue ? int.MaxValue : dist[position] + 1;
                     if (tempDist < dist[neighbourPosition])
                     {
@@ -61,43 +58,30 @@ namespace AdventOfCode2024.Days
 
         public override string Part2()
         {
-            var input = GetInput();
+            var input = GetInput().ToArray();
             var gridOfBytes = new bool[GRID_DIMENSION, GRID_DIMENSION];
 
             foreach (var (row, col) in input)
-            {
                 gridOfBytes[row, col] = true;
-            }
 
             var coordsToConnectedCompId = new Dictionary<(int, int), int>();
-
             var connectedCompId = 0;
 
-            for (var i = 0; i < GRID_DIMENSION; i++)
+            foreach (var (i, j) in GetAllGridCoords())
             {
-                for (var j = 0; j < GRID_DIMENSION; j++)
-                {
-                    var coords = (i, j);
+                var coords = (i, j);
 
-                    if (gridOfBytes[i, j])
-                        continue; // Wall (byte fallen)
-                    if (coordsToConnectedCompId.ContainsKey(coords))
-                        continue; // Already processed
+                if (gridOfBytes[i, j] || coordsToConnectedCompId.ContainsKey(coords))
+                    continue;
 
-                    Process(coords, connectedCompId, gridOfBytes, coordsToConnectedCompId);
-                    connectedCompId++;
-                }
+                ProcessConnectedComp(coords, connectedCompId, gridOfBytes, coordsToConnectedCompId);
+                connectedCompId++;
             }
 
             var inputReversed = input.Reverse().ToArray();
 
             foreach (var byteCoords in inputReversed)
             {
-                // Remove byte and check connected comps
-                gridOfBytes[byteCoords.Item1, byteCoords.Item2] = false;
-
-                // Only need to check 4 directions
-                // Get all ids of neighbour squares. Next, reassign all ids to the smallest id out of the lot
                 var setOfNeighbourCompIds = new HashSet<int>();
 
                 foreach (var diffValue in DiffValues)
@@ -116,11 +100,8 @@ namespace AdventOfCode2024.Days
                     .ToArray();
 
                 foreach (var coords in affectedCoords)
-                {
                     coordsToConnectedCompId[coords] = minCompId;
-                }
 
-                // Check if start and end are connected
                 if (coordsToConnectedCompId.TryGetValue((0, 0), out var startCompId) &&
                     coordsToConnectedCompId.TryGetValue((GRID_DIMENSION - 1, GRID_DIMENSION - 1), out var endCompId) &&
                     startCompId == endCompId)
@@ -132,7 +113,11 @@ namespace AdventOfCode2024.Days
             return "";
         }
 
-        private static void Process((int, int) coords, int connectedCompId, bool[,] grid, Dictionary<(int, int), int> coordsToConnectedCompId)
+        private static void ProcessConnectedComp(
+            (int, int) coords,
+            int connectedCompId,
+            bool[,] gridOfBytes,
+            Dictionary<(int, int), int> coordsToConnectedCompId)
         {
             coordsToConnectedCompId[coords] = connectedCompId;
 
@@ -142,26 +127,33 @@ namespace AdventOfCode2024.Days
                 if (neighbourCoords.Item1 < 0 || neighbourCoords.Item1 >= GRID_DIMENSION || neighbourCoords.Item2 < 0 || neighbourCoords.Item2 >= GRID_DIMENSION)
                     continue;
 
-                if (grid[neighbourCoords.Item1, neighbourCoords.Item2])
-                    continue; // Wall (byte fallen)
+                if (gridOfBytes[neighbourCoords.Item1, neighbourCoords.Item2])
+                    continue;
 
                 if (coordsToConnectedCompId.ContainsKey(neighbourCoords))
                     continue;
 
-                Process(neighbourCoords, connectedCompId, grid, coordsToConnectedCompId);
+                ProcessConnectedComp(neighbourCoords, connectedCompId, gridOfBytes, coordsToConnectedCompId);
             }
         }
 
-        private static HashSet<(int, int)> GetReachableCoords(IEnumerable<(int, int)> input, int takeFirstCount)
+        private static HashSet<(int, int)> GetReachableCoords(IEnumerable<(int, int)> input, int? takeFirstCount = null)
         {
             var grid = Enumerable.Range(0, GRID_DIMENSION)
                 .SelectMany(row => Enumerable.Range(0, GRID_DIMENSION).Select(col => (row, col)).ToArray());
             var set = new HashSet<(int, int)>(grid);
 
-            var byteCoords = input.Take(takeFirstCount);
+            var byteCoords = takeFirstCount.HasValue ? input.Take(takeFirstCount.Value) : input;
             set.RemoveWhere(x => byteCoords.Contains(x));
 
             return set;
+        }
+
+        private static IEnumerable<(int, int)> GetAllGridCoords()
+        {
+            for (int rowIndex = 0; rowIndex < GRID_DIMENSION; rowIndex++)
+                for (int columnIndex = 0; columnIndex < GRID_DIMENSION; columnIndex++)
+                    yield return (rowIndex, columnIndex);
         }
 
         private IEnumerable<(int, int)> GetInput()
