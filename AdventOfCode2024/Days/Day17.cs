@@ -25,98 +25,21 @@ namespace AdventOfCode2024.Days
             // (not offical but) TOO LOW: 2015500000
 
             var input = GetInput();
-            var regAFromFile = long.Parse(input[0].Split("Register A: ")[1]);
             var regBFromFile = long.Parse(input[1].Split("Register B: ")[1]);
             var regCFromFile = long.Parse(input[2].Split("Register C: ")[1]);
             var numbers = input[4].Split("Program: ")[1].Split(",").Select(int.Parse).ToArray();
 
-            // regA reset
-            var initialRegA = -1;
-            
-            while (true)
+            var regA = 0L;
+            for (int i = 1; i <= numbers.Length; i++)
             {
-                initialRegA++;
-                if (initialRegA % 100_000 == 0)
-                    Console.WriteLine(initialRegA);
+                regA <<= 3;
 
-                // Ignore the one from file
-                if (initialRegA == regAFromFile)
-                    continue;
-
-                var regA = initialRegA;
-                var regB = regBFromFile;
-                var regC = regCFromFile;
-                var outputLooksGoodForNow = true;
-                var currentOutputValuesIndex = 0;
-                var instructionPointer = 0;
-                var deleteMeList = new List<long>();
-
-                while (outputLooksGoodForNow)
-                {
-                    if (instructionPointer >= numbers.Length)
-                    {
-                        // We're outside
-                        break;
-                    }
-
-                    var opcode = numbers[instructionPointer];
-                    var operand = numbers[instructionPointer + 1];
-                    var shouldUpInsPointer = true;
-
-                    switch (opcode)
-                    {
-                        case 0: // Division
-                            regA /= (int)Math.Pow(2, GetComboOperand(operand, regA, regB, regC)); break;
-                        case 1:
-                            regB ^= operand; break;
-                        case 2:
-                            regB = GetComboOperand(operand, regA, regB, regC) % 8; break;
-                        case 3:
-                            if (regA == 0) break;
-                            instructionPointer = operand;
-                            shouldUpInsPointer = false;
-                            break;
-                        case 4:
-                            regB ^= regC; break;
-                        case 5:
-                            // check if index is out of bounds
-                            if (currentOutputValuesIndex >= numbers.Length)
-                            {
-                                outputLooksGoodForNow = false;
-                                break;
-                            }
-
-                            var output = GetComboOperand(operand, regA, regB, regC) % 8;
-                            // check if not same in original list
-                            if (output != numbers[currentOutputValuesIndex])
-                            {
-                                outputLooksGoodForNow = false;
-                                break;
-                            }
-
-                            // otherwise, all good, increase index
-                            currentOutputValuesIndex++;
-                            break;
-                        case 6:
-                            regB = regA / (int)Math.Pow(2, GetComboOperand(operand, regA, regB, regC)); break;
-                        case 7:
-                            regC = regA / (int)Math.Pow(2, GetComboOperand(operand, regA, regB, regC)); break;
-                    }
-
-                    if (shouldUpInsPointer)
-                        instructionPointer += 2;
-                }
-
-                if (outputLooksGoodForNow && currentOutputValuesIndex == numbers.Length)
-                {
-                    // We are done!
-                    Console.WriteLine(string.Join(",", deleteMeList));
-                    return initialRegA.ToString();
-                }
+                var goalNumbers = numbers.TakeLast(i).ToArray();
+                while (!GetOutputPart2(regA, regBFromFile, regCFromFile, numbers).SequenceEqual(goalNumbers))
+                    regA++;
             }
 
-
-            return "";
+            return regA.ToString();
         }
 
         public static List<long> GetOutput(long regA, long regB, long regC, int[] numbers)
@@ -163,6 +86,45 @@ namespace AdventOfCode2024.Days
 
                 if (shouldUpInsPointer)
                     instructionPointer += 2;
+            }
+
+            return outputValues;
+        }
+
+        private static List<int> GetOutputPart2(long regA, long regB, long regC, int[] numbers)
+        {
+            var outputValues = new List<int>();
+
+            for (int instructionPointer = 0; instructionPointer < numbers.Length; instructionPointer += 2)
+            {
+                var opcode = numbers[instructionPointer];
+                var operand = numbers[instructionPointer + 1];
+
+                switch (opcode)
+                {
+                    case 0:
+                        regA >>= (int)GetComboOperand(operand, regA, regB, regC); break;
+                    case 1:
+                        regB ^= operand; break;
+                    case 2:
+                        regB = GetComboOperand(operand, regA, regB, regC) % 8; break;
+                    case 3:
+                        if (regA == 0) break;
+                        instructionPointer = operand - 2;
+                        break;
+                    case 4:
+                        regB ^= regC; break;
+                    case 5:
+                        var output = (int)(GetComboOperand(operand, regA, regB, regC) % 8);
+                        outputValues.Add(output);
+                        break;
+                    case 6:
+                        regB = regA >> (int)GetComboOperand(operand, regA, regB, regC); break;
+                    case 7:
+                        regC = regA >> (int)GetComboOperand(operand, regA, regB, regC); break;
+                    default:
+                        throw new Exception("Invalid opcode");
+                }
             }
 
             return outputValues;
