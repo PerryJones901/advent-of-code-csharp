@@ -1,9 +1,9 @@
-﻿namespace AdventOfCode2024.Days;
+﻿namespace AdventOfCode2025.Days;
 
 public abstract class DayBase(int dayNumber, bool isTest = false)
 {
     // TODO: Don't hardcode this path
-    private const string INPUT_FILES_PATH = "C:\\Work\\advent-of-code-csharp\\AdventOfCode2024\\InputFiles";
+    private const string INPUT_FILES_PATH = "C:\\Work\\advent-of-code-csharp\\AdventOfCode2025\\InputFiles";
 
     protected string FileNameSuffix => IsTest ? "_Test" : "";
     protected string TextInputFileName => $"Day{DayNumber.ToString().PadLeft(2, '0')}{FileNameSuffix}";
