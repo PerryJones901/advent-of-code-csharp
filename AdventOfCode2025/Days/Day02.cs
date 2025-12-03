@@ -94,14 +94,17 @@ namespace AdventOfCode2025.Days
 
         private static int GetKeyDivisor(int lengthOfRepeat, int lengthOfSequence)
         {
+            var repeatingAtom = "1".PadLeft(lengthOfRepeat, '0');
             var numRepeats = lengthOfSequence / lengthOfRepeat;
-            var keyDivisorStr = string.Join("", Enumerable.Repeat("1".PadLeft(lengthOfRepeat, '0'), numRepeats));
-            return int.Parse(keyDivisorStr);
+            var repeatingSequence = Enumerable.Repeat(repeatingAtom, numRepeats);
+
+            var keyDivisorStr = string.Join("", repeatingSequence);
+            var keyDivisor = int.Parse(keyDivisorStr);
+
+            return keyDivisor;
         }
 
         private string[] GetInput()
-        {
-            return FileInputAssistant.GetStringArrayFromFile(TextInputFilePath, ",");
-        }
+            => FileInputAssistant.GetStringArrayFromFile(TextInputFilePath, ",");
     }
 }
