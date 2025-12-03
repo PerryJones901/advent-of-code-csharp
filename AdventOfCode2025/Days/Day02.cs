@@ -28,13 +28,13 @@ namespace AdventOfCode2025.Days
                         var chunkLength = sequenceLength / i;
                         var divisor = GetDivisor(chunkLength, sequenceLength);
 
-                        long rangeStart = (long)Math.Pow(10, sequenceLength - 1);
-                        long rangeEnd = (long)Math.Pow(10, sequenceLength) - 1;
+                        var rangeStart = sequenceLength == lowerPartStr.Length
+                            ? long.Parse(lowerPartStr)
+                            : (long)Math.Pow(10, sequenceLength - 1);
 
-                        if (sequenceLength == lowerPartStr.Length)
-                            rangeStart = long.Parse(lowerPartStr);
-                        if (sequenceLength == upperPartStr.Length)
-                            rangeEnd = long.Parse(upperPartStr);
+                        var rangeEnd = sequenceLength == upperPartStr.Length
+                            ? long.Parse(upperPartStr)
+                            : (long)Math.Pow(10, sequenceLength) - 1;
 
                         // By taking 'rangeStart - 1' instead of 'rangeStart', we're able to include 'rangeStart' itself if it's divisible
                         var lowerQuotient = (rangeStart - 1) / divisor;
