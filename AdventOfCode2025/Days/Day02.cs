@@ -1,51 +1,13 @@
 ﻿using AdventOfCodeCommon;
-using System.Runtime.CompilerServices;
 
 namespace AdventOfCode2025.Days
 {
     internal class Day02(bool isTest) : DayBase(2, isTest)
     {
-        public override string Part1()
-        {
-            var input = GetInput();
+        public override string Part1() => GetInvalidIdSum(repeatCount: 2);
+        public override string Part2() => GetInvalidIdSum();
 
-            var invalidIdSum = 0L;
-            foreach (var line in input)
-            {
-                var lowerPartStr = line.Split("-")[0];
-                var upperPartStr = line.Split("-")[1];
-
-                for (var length = lowerPartStr.Length; length <= upperPartStr.Length; length++)
-                {
-                    if (length % 2 == 1)
-                        continue;
-
-                    var chunkLength = length / 2;
-                    var keyDivisor = GetKeyDivisor(chunkLength, length);
-                    long rangeStart = (long)Math.Pow(10, length - 1);
-                    long rangeEnd = (long)Math.Pow(10, length) - 1;
-
-                    if (length == lowerPartStr.Length)
-                        rangeStart = long.Parse(lowerPartStr);
-                    if (length == upperPartStr.Length)
-                        rangeEnd = long.Parse(upperPartStr);
-
-                    var lowerQuotient = (rangeStart - 1) / keyDivisor;
-                    var upperQuotient = rangeEnd / keyDivisor;
-                    var difference = upperQuotient - lowerQuotient;
-
-                    foreach (var i in Enumerable.Range(1, (int)difference))
-                    {
-                        var invalidId = keyDivisor * (lowerQuotient + i);
-                        invalidIdSum += invalidId;
-                    }
-                }
-            }
-
-            return invalidIdSum.ToString();
-        }
-
-        public override string Part2()
+        private string GetInvalidIdSum(int? repeatCount = null)
         {
             var input = GetInput();
 
@@ -56,30 +18,32 @@ namespace AdventOfCode2025.Days
                 var upperPartStr = line.Split("-")[1];
                 var seenInvalidIds = new HashSet<long>();
 
-                for (var length = lowerPartStr.Length; length <= upperPartStr.Length; length++)
+                for (var sequenceLength = lowerPartStr.Length; sequenceLength <= upperPartStr.Length; sequenceLength++)
                 {
-                    for (var i = 2; i <= length; i++)
+                    for (var i = 2; i <= sequenceLength; i++)
                     {
-                        if (length % i != 0)
+                        if (sequenceLength % i != 0 || (repeatCount.HasValue && i != repeatCount.Value))
                             continue;
 
-                        var chunkLength = length / i;
-                        var keyDivisor = GetKeyDivisor(chunkLength, length);
-                        long rangeStart = (long)Math.Pow(10, length - 1);
-                        long rangeEnd = (long)Math.Pow(10, length) - 1;
+                        var chunkLength = sequenceLength / i;
+                        var divisor = GetDivisor(chunkLength, sequenceLength);
 
-                        if (length == lowerPartStr.Length)
+                        long rangeStart = (long)Math.Pow(10, sequenceLength - 1);
+                        long rangeEnd = (long)Math.Pow(10, sequenceLength) - 1;
+
+                        if (sequenceLength == lowerPartStr.Length)
                             rangeStart = long.Parse(lowerPartStr);
-                        if (length == upperPartStr.Length)
+                        if (sequenceLength == upperPartStr.Length)
                             rangeEnd = long.Parse(upperPartStr);
 
-                        var lowerQuotient = (rangeStart - 1) / keyDivisor;
-                        var upperQuotient = rangeEnd / keyDivisor;
+                        // By taking 'rangeStart - 1' instead of 'rangeStart', we're able to include 'rangeStart' itself if it's divisible
+                        var lowerQuotient = (rangeStart - 1) / divisor;
+                        var upperQuotient = rangeEnd / divisor;
                         var difference = upperQuotient - lowerQuotient;
 
                         foreach (var j in Enumerable.Range(1, (int)difference))
                         {
-                            var invalidId = keyDivisor * (lowerQuotient + j);
+                            var invalidId = divisor * (lowerQuotient + j);
 
                             seenInvalidIds.Add(invalidId);
                         }
@@ -92,16 +56,16 @@ namespace AdventOfCode2025.Days
             return invalidIdSum.ToString();
         }
 
-        private static int GetKeyDivisor(int lengthOfRepeat, int lengthOfSequence)
+        private static int GetDivisor(int chunkLength, int sequenceLength)
         {
-            var repeatingAtom = "1".PadLeft(lengthOfRepeat, '0');
-            var numRepeats = lengthOfSequence / lengthOfRepeat;
-            var repeatingSequence = Enumerable.Repeat(repeatingAtom, numRepeats);
+            var chunk = "1".PadLeft(chunkLength, '0');
+            var repeatCount = sequenceLength / chunkLength;
+            var repeatingSequence = Enumerable.Repeat(chunk, repeatCount);
 
-            var keyDivisorStr = string.Join("", repeatingSequence);
-            var keyDivisor = int.Parse(keyDivisorStr);
+            var divisorStr = string.Join("", repeatingSequence);
+            var divisor = int.Parse(divisorStr);
 
-            return keyDivisor;
+            return divisor;
         }
 
         private string[] GetInput()
