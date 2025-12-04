@@ -15,16 +15,16 @@ namespace AdventOfCode2025.Days
 
             foreach (var line in input)
             {
-                var currentDigit = 1;
+                var currentDigitIndex = 0;
                 var currentFromIndex = 0;
                 var joltString = string.Empty;
 
-                while (currentDigit <= batteryCount)
+                while (currentDigitIndex < batteryCount)
                 {
                     var maxDigit = line[currentFromIndex];
                     var maxIndex = currentFromIndex;
 
-                    for (int i = currentFromIndex + 1; i < line.Length - batteryCount + currentDigit; i++)
+                    for (int i = currentFromIndex + 1; i <= line.Length - batteryCount + currentDigitIndex; i++)
                     {
                         if (line[i] <= maxDigit)
                             continue;
@@ -36,7 +36,7 @@ namespace AdventOfCode2025.Days
                     joltString += maxDigit.ToString();
                     currentFromIndex = maxIndex + 1;
 
-                    currentDigit++;
+                    currentDigitIndex++;
                 }
 
                 var joltValue = long.Parse(joltString);
