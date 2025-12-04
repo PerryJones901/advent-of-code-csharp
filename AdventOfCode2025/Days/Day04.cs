@@ -6,44 +6,11 @@ namespace AdventOfCode2025.Days
     internal class Day04(bool isTest) : DayBase(4, isTest)
     {
         private const int MAX_ACCESSIBLE_COUNT = 3;
-        public override string Part1()
-        {
-            var input = GetInput();
 
-            var rowCount = input.Length;
-            var colCount = input[0].Length;
+        public override string Part1() => GetAccessibleRollCount(removeAsYouGo: false);
+        public override string Part2() => GetAccessibleRollCount(removeAsYouGo: true);
 
-            var accessibleRollCount = 0;
-
-            for (int row = 0; row < rowCount; row++)
-            {
-                for (int col = 0; col < colCount; col++)
-                {
-                    var currentChar = input[row][col];
-                    if (currentChar != '@')
-                        continue;
-
-                    var adjacentRollCount = 0;
-
-                    foreach (var (searchRow, searchCol) in GetSearchCoords(row, col))
-                    {
-                        if (!input.IsInBounds(searchRow, searchCol))
-                            continue;
-
-                        var searchChar = input[searchRow][searchCol];
-                        if (searchChar == '@')
-                            adjacentRollCount++;
-                    }
-
-                    if (adjacentRollCount <= MAX_ACCESSIBLE_COUNT)
-                        accessibleRollCount++;
-                }
-            }
-
-            return accessibleRollCount.ToString();
-        }
-
-        public override string Part2()
+        private string GetAccessibleRollCount(bool removeAsYouGo)
         {
             var input = GetInput();
 
@@ -53,7 +20,7 @@ namespace AdventOfCode2025.Days
             var accessibleRollCount = 0;
             var isRollRemoved = true;
 
-            while(isRollRemoved)
+            while (isRollRemoved)
             {
                 isRollRemoved = false;
 
@@ -79,15 +46,19 @@ namespace AdventOfCode2025.Days
 
                         if (adjacentRollCount <= MAX_ACCESSIBLE_COUNT)
                         {
-                            isRollRemoved = true;
                             accessibleRollCount++;
+
+                            if (!removeAsYouGo)
+                                continue;
+
+                            isRollRemoved = true;
                             var inputRowChars = input[row].ToCharArray();
                             inputRowChars[col] = '.';
                             input[row] = new string(inputRowChars);
                         }
                     }
                 }
-            }           
+            }
 
             return accessibleRollCount.ToString();
         }
