@@ -5,7 +5,7 @@ namespace AdventOfCode2025.Days
 {
     internal class Day04(bool isTest) : DayBase(4, isTest)
     {
-        private const int MAX_ACCESSIBLE_COUNT = 3;
+        private const int MAX_ADJACENT_ROLL_COUNT_TO_BE_ACCESSIBLE = 3;
 
         public override string Part1() => GetAccessibleRollCount(removeAsYouGo: false);
         public override string Part2() => GetAccessibleRollCount(removeAsYouGo: true);
@@ -13,10 +13,6 @@ namespace AdventOfCode2025.Days
         private string GetAccessibleRollCount(bool removeAsYouGo)
         {
             var input = GetInput();
-
-            var rowCount = input.Length;
-            var colCount = input[0].Length;
-
             var accessibleRollCount = 0;
             var isRollRemoved = true;
 
@@ -24,12 +20,11 @@ namespace AdventOfCode2025.Days
             {
                 isRollRemoved = false;
 
-                for (int row = 0; row < rowCount; row++)
+                for (int row = 0; row < input.Length; row++)
                 {
-                    for (int col = 0; col < colCount; col++)
+                    for (int col = 0; col < input[0].Length; col++)
                     {
-                        var currentChar = input[row][col];
-                        if (currentChar != '@')
+                        if (input[row][col] != '@')
                             continue;
 
                         var adjacentRollCount = 0;
@@ -39,12 +34,11 @@ namespace AdventOfCode2025.Days
                             if (!input.IsInBounds(searchRow, searchCol))
                                 continue;
 
-                            var searchChar = input[searchRow][searchCol];
-                            if (searchChar == '@')
+                            if (input[searchRow][searchCol] == '@')
                                 adjacentRollCount++;
                         }
 
-                        if (adjacentRollCount <= MAX_ACCESSIBLE_COUNT)
+                        if (adjacentRollCount <= MAX_ADJACENT_ROLL_COUNT_TO_BE_ACCESSIBLE)
                         {
                             accessibleRollCount++;
 
