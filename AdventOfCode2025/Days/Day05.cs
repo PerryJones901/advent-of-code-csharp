@@ -14,7 +14,7 @@ namespace AdventOfCode2025.Days
 
             var validIngredientCount = 0;
 
-            foreach(var ingredientId in ingredientIds)
+            foreach (var ingredientId in ingredientIds)
             {
                 foreach (var range in ranges)
                 {
@@ -31,25 +31,57 @@ namespace AdventOfCode2025.Days
 
         public override string Part2()
         {
-            return "Part 2";
+            var input = GetInput();
+            var ranges = GetRanges(input[0]);
+            var edges = GetEdges(ranges);
+
+            var mergedRanges = new List<Range>();
+            var startEdgeStackCount = 0;
+            long? currentStartPosition = null;
+
+            foreach (var edge in edges)
+            {
+                if (startEdgeStackCount == 0)
+                    currentStartPosition = edge.Position;
+
+                startEdgeStackCount += edge.IsStart ? 1 : -1;
+
+                if (startEdgeStackCount == 0)
+                {
+                    if (!currentStartPosition.HasValue)
+                        throw new Exception("Invalid state");
+
+                    var range = new Range(currentStartPosition.Value, edge.Position);
+                    mergedRanges.Add(range);
+                    currentStartPosition = null;
+                }
+            }
+
+            var totalFreshIdCount = mergedRanges.Sum(x => x.End - x.Start + 1);
+
+            return totalFreshIdCount.ToString();
         }
 
         private static IEnumerable<Range> GetRanges(string rangesInput)
             => rangesInput
                 .Split(NEW_LINE_SEPARATOR)
-                .Select(line =>
-                {
-                    var parts = line.Split('-');
-                    return new Range(long.Parse(parts[0]), long.Parse(parts[1]));
-                });
+                .Select(line => 
+                    new Range(
+                        long.Parse(line.Split('-')[0]),
+                        long.Parse(line.Split('-')[1])
+                    )
+                ).OrderBy(x => x.Start);
 
         private static IEnumerable<long> GetIngredientIds(string ingredientsInput)
             => ingredientsInput
                 .Split(NEW_LINE_SEPARATOR)
                 .Select(long.Parse);
 
-        private static bool AreRangesSeparate(Range range1, Range range2)
-            => range1.End < range2.Start || range2.End < range1.Start;
+        private static IEnumerable<Edge> GetEdges(IEnumerable<Range> ranges)
+            => ranges.Select(ranges => new Edge(ranges.Start, isStart: true))
+                .Concat(ranges.Select(ranges => new Edge(ranges.End, isStart: false)))
+                .OrderBy(edge => edge.Position)
+                .ThenBy(edge => edge.IsStart ? 0 : 1);
 
         private string[] GetInput()
             => FileInputAssistant.GetStringArrayFromFile(TextInputFilePath, $"{NEW_LINE_SEPARATOR}{NEW_LINE_SEPARATOR}");
@@ -59,6 +91,13 @@ namespace AdventOfCode2025.Days
         {
             public long Start { get; } = start;
             public long End { get; } = end;
+        }
+
+        [DebuggerDisplay("Position = {Position}, IsStart = {IsStart}")]
+        private class Edge(long position, bool isStart)
+        {
+            public long Position { get; } = position;
+            public bool IsStart { get; } = isStart;
         }
     }
 }
