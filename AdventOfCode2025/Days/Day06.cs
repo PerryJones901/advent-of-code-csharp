@@ -12,21 +12,15 @@ namespace AdventOfCode2025.Days
                 .SkipLast(1)
                 .Select(x => x.Select(y => int.Parse(y)).ToArray())
                 .ToArray();
-
             var operatorRow = inputGrid.Last().ToArray();
+
             var grandTotal = 0L;
 
             for (int col = 0; col < operatorRow.Length; col++)
             {
                 var op = operatorRow[col];
-                long answer = numberGrid[0][col];
-
-                for (int row = 1; row < numberGrid.Length; row++)
-                {
-                    answer = op == "*"
-                        ? answer * numberGrid[row][col]
-                        : answer + numberGrid[row][col];
-                }
+                var numbers = numberGrid.Select(x => (long)x[col]);
+                long answer = GetAnswer(numbers, op[0]);
 
                 grandTotal += answer;
             }
@@ -38,16 +32,18 @@ namespace AdventOfCode2025.Days
         {
             var input = GetInput();
 
-            var operators = input.Last().Select((c, i) => new { Char = c, ColIndexInCharGrid = i })
+            var operators = input
+                .Last()
+                .Select((c, i) => new { Char = c, ColIndexInCharGrid = i })
                 .Where(x => x.Char == '+' || x.Char == '*')
                 .ToList();
 
             var grandTotal = 0L;
 
-            for (int opId = 0; opId < operators.Count(); opId++)
+            for (int opId = 0; opId < operators.Count; opId++)
             {
                 var op = operators[opId];
-                var nextOp = opId + 1 < operators.Count()
+                var nextOp = opId + 1 < operators.Count
                     ? operators[opId + 1]
                     : null;
 
@@ -55,15 +51,10 @@ namespace AdventOfCode2025.Days
                     ? nextOp.ColIndexInCharGrid - 1
                     : input[0].Length;
 
-                var answer = GetNumberAtColumn(input, op.ColIndexInCharGrid);
+                var numbers = Enumerable.Range(op.ColIndexInCharGrid, nextBlankColIndexInCharGrid - op.ColIndexInCharGrid)
+                    .Select(col => GetNumberAtColumn(input, col));
 
-                for (int col = op.ColIndexInCharGrid + 1; col < nextBlankColIndexInCharGrid; col++)
-                {
-                    var number = GetNumberAtColumn(input, col);
-                    answer = op.Char == '*'
-                        ? answer * number
-                        : answer + number;
-                }
+                var answer = GetAnswer(numbers, op.Char);
 
                 grandTotal += answer;
             }
@@ -73,23 +64,21 @@ namespace AdventOfCode2025.Days
 
         private static long GetNumberAtColumn(string[] input, int col)
         {
-            var numberCharList = new List<char>();
+            var chars = input
+                .SkipLast(1)
+                .Select(x => x[col])
+                .Where(x => x != ' ')
+                .ToArray();
 
-            for (int row = 0; row < input.Length - 1; row++)
-            {
-                var @char = input[row][col];
-
-                if (@char == ' ')
-                    continue;
-
-                numberCharList.Add(@char);
-            }
-
-            var numberString = new string(numberCharList.ToArray());
-            var number = long.Parse(numberString);
+            var number = long.Parse(chars);
 
             return number;
         }
+
+        private static long GetAnswer(IEnumerable<long> numbers, char op)
+            =>  op == '*'
+                ? numbers.Aggregate((a, b) => a * b)
+                : numbers.Aggregate((a, b) => a + b);
 
         private string[] GetInput()
             => FileInputAssistant.GetStringArrayFromFile(TextInputFilePath);
