@@ -19,8 +19,6 @@ namespace AdventOfCode2025.Days
         }
 
         private string[] GetInput()
-        {
-            return FileInputAssistant.GetStringArrayFromFile(TextInputFilePath);
-        }
+            => FileInputAssistant.GetStringArrayFromFile(TextInputFilePath);
     }
 }
