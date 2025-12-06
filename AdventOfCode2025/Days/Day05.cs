@@ -12,19 +12,8 @@ namespace AdventOfCode2025.Days
             var ranges = GetRanges(input[0]);
             var ingredientIds = GetIngredientIds(input[1]);
 
-            var validIngredientCount = 0;
-
-            foreach (var ingredientId in ingredientIds)
-            {
-                foreach (var range in ranges)
-                {
-                    if (range.Start <= ingredientId && ingredientId <= range.End)
-                    {
-                        validIngredientCount++;
-                        break;
-                    }
-                }
-            }
+            var validIngredientCount = ingredientIds
+                .Count(id => ranges.Any(r => r.Start <= id && id <= r.End));
 
             return validIngredientCount.ToString();
         }
