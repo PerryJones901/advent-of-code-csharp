@@ -5,70 +5,56 @@ namespace AdventOfCode2025.Days
 {
     internal class Day07(bool isTest) : DayBase(7, isTest)
     {
-        public override string Part1()
+        public override string Part1() => GetCount(CountType.Splits);
+        public override string Part2() => GetCount(CountType.Timelines);
+
+        private string GetCount(CountType countType)
         {
             var input = GetInput();
-            var tachyonBeamCols = new HashSet<int>();
-            var startBeam = input[0].IndexOf('S');
-            tachyonBeamCols.Add(startBeam);
+            var startBeamCol = input[0].IndexOf('S');
+            var splitCount = 0L;
 
-            var splitCount = 0;
+            var beamColToTimelineCount = new Dictionary<int, long>
+            {
+                { startBeamCol, 1 }
+            };
 
             foreach (var row in input.Skip(1))
             {
-                var newTachyonBeamCols = new HashSet<int>();
+                var newBeamColToTimelineCount = new Dictionary<int, long>();
 
-                foreach (var currentBeam in tachyonBeamCols)
+                foreach (var currentBeam in beamColToTimelineCount.Keys)
                 {
+                    var amount = beamColToTimelineCount[currentBeam];
+
                     if (row[currentBeam] == '^')
                     {
                         splitCount++;
-                        newTachyonBeamCols.Add(currentBeam + 1);
-                        newTachyonBeamCols.Add(currentBeam - 1);
-                    }
-                    else
-                    {
-                        newTachyonBeamCols.Add(currentBeam);
-                    }
-                }
-
-                tachyonBeamCols = newTachyonBeamCols;
-            }
-
-            return splitCount.ToString();
-        }
-
-        public override string Part2()
-        {
-            var input = GetInput();
-            var tachyonBeamsColToTimelineCount = new Dictionary<int, long>();
-            var startBeam = input[0].IndexOf('S');
-            tachyonBeamsColToTimelineCount.Add(startBeam, 1);
-
-            foreach (var row in input.Skip(1))
-            {
-                var newTachyonBeamsColToTimelineCount = new Dictionary<int, long>();
-
-                foreach (var currentBeam in tachyonBeamsColToTimelineCount.Keys)
-                {
-                    var amount = tachyonBeamsColToTimelineCount[currentBeam];
-
-                    if (row[currentBeam] == '^')
-                    {
-                        newTachyonBeamsColToTimelineCount.AddOrIncrement(key: currentBeam - 1, amount);
-                        newTachyonBeamsColToTimelineCount.AddOrIncrement(key: currentBeam + 1, amount);
+                        newBeamColToTimelineCount.AddOrIncrement(key: currentBeam - 1, amount);
+                        newBeamColToTimelineCount.AddOrIncrement(key: currentBeam + 1, amount);
                         continue;
                     }
 
-                    newTachyonBeamsColToTimelineCount.AddOrIncrement(key: currentBeam, amount);
+                    newBeamColToTimelineCount.AddOrIncrement(key: currentBeam, amount);
                 }
 
-                tachyonBeamsColToTimelineCount = newTachyonBeamsColToTimelineCount;
+                beamColToTimelineCount = newBeamColToTimelineCount;
             }
 
-            var timelineCount = tachyonBeamsColToTimelineCount.Values.Sum();
+            var count = countType switch
+            {
+                CountType.Splits => splitCount,
+                CountType.Timelines => beamColToTimelineCount.Values.Sum(),
+                _ => throw new NotImplementedException()
+            };
 
-            return timelineCount.ToString();
+            return count.ToString();
+        }
+
+        private enum CountType
+        {
+            Splits,
+            Timelines
         }
 
         private string[] GetInput()
