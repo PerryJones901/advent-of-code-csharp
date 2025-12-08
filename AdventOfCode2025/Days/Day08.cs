@@ -1,4 +1,5 @@
 ﻿using AdventOfCodeCommon;
+using AdventOfCodeCommon.Extensions;
 using AdventOfCodeCommon.Vectors;
 using System.Diagnostics;
 
@@ -10,30 +11,12 @@ namespace AdventOfCode2025.Days
         {
             var input = GetInput();
             var nodes = GetNodesFromInput(input);
-            var pairsToDistances = new Dictionary<(Node, Node), double>();
-            for (int firstIndex = 0; firstIndex < nodes.Count - 1; firstIndex++)
-            {
-                for (int secondIndex = firstIndex + 1; secondIndex < nodes.Count; secondIndex++)
-                {
-                    var firstNode = nodes[firstIndex];
-                    var secondNode = nodes[secondIndex];
-                    var distance = firstNode.Position.DistanceTo(secondNode.Position);
-                    pairsToDistances[(firstNode, secondNode)] = distance;
-                }
-            }
-
-            var pairsOrderedByDistance = pairsToDistances
-                .OrderBy(x => x.Value)
-                .Take(1000)
-                .ToList();
+            var pairsOrderedByDistance = GetOrderedNodePairsByDistance(nodes).Take(1000);
 
             foreach (var pair in pairsOrderedByDistance)
             {
-                var firstNode = pair.Key.Item1;
-                var secondNode = pair.Key.Item2;
-
-                firstNode.Neighbors.Add(secondNode);
-                secondNode.Neighbors.Add(firstNode);
+                pair.Item1.Neighbors.Add(pair.Item2);
+                pair.Item2.Neighbors.Add(pair.Item1);
             }
 
             var nodeToConnectedCompId = new Dictionary<Node, int>();
@@ -41,9 +24,7 @@ namespace AdventOfCode2025.Days
             foreach (var node in nodes)
             {
                 if (nodeToConnectedCompId.ContainsKey(node))
-                {
                     continue;
-                }
 
                 var nodeQueue = new Queue<Node>([node]);
 
@@ -51,17 +32,13 @@ namespace AdventOfCode2025.Days
                 {
                     var currentNode = nodeQueue.Dequeue();
                     if (nodeToConnectedCompId.ContainsKey(currentNode))
-                    {
                         continue;
-                    }
+
                     nodeToConnectedCompId[currentNode] = currentCompId;
+
                     foreach (var neighbor in currentNode.Neighbors)
-                    {
                         if (!nodeToConnectedCompId.ContainsKey(neighbor))
-                        {
                             nodeQueue.Enqueue(neighbor);
-                        }
-                    }
                 }
 
                 currentCompId++;
@@ -73,7 +50,8 @@ namespace AdventOfCode2025.Days
                 .OrderDescending()
                 .Take(3);
 
-            var answer = threeLargestConnectedCompCounts.Aggregate(1, (a, b) => a * b);
+            var answer = threeLargestConnectedCompCounts
+                .Aggregate(1, (a, b) => a * b);
 
             return answer.ToString();
         }
@@ -82,28 +60,11 @@ namespace AdventOfCode2025.Days
         {
             var input = GetInput();
             var nodes = GetNodesFromInput(input);
-            var pairsToDistances = new Dictionary<(Node, Node), double>();
-            for (int firstIndex = 0; firstIndex < nodes.Count - 1; firstIndex++)
-            {
-                for (int secondIndex = firstIndex + 1; secondIndex < nodes.Count; secondIndex++)
-                {
-                    var node1 = nodes[firstIndex];
-                    var node2 = nodes[secondIndex];
-                    var distance = node1.Position.DistanceTo(node2.Position);
-                    pairsToDistances[(node1, node2)] = distance;
-                }
-            }
+            var pairsOrderedByDistance = GetOrderedNodePairsByDistance(nodes);
 
-            var pairsOrderedByDistance = pairsToDistances
-                .OrderBy(x => x.Value)
-                .Select(x => x.Key)
-                .ToList();
-
-            var nodeToConnectedCompId = new Dictionary<Node, int>();
-            for (int index = 0; index < nodes.Count; index++)
-            {
-                nodeToConnectedCompId[nodes[index]] = index;
-            }
+            var nodeToConnectedCompId = nodes
+                .Select((node, index) => (Node: node, Index: index))
+                .ToDictionary(x => x.Node, x => x.Index);
 
             Node? firstNode = null, secondNode = null;
 
@@ -127,9 +88,7 @@ namespace AdventOfCode2025.Days
                     .ToList();
 
                 foreach (var node in nodesInConnectedCompToChange)
-                {
                     nodeToConnectedCompId[node] = mergedCompId;
-                }
 
                 if (nodeToConnectedCompId.Values.Distinct().Count() == 1)
                     break;
@@ -157,6 +116,21 @@ namespace AdventOfCode2025.Days
                 }).ToList();
 
             return nodes;
+        }
+
+        private static List<(Node, Node)> GetOrderedNodePairsByDistance(IEnumerable<Node> nodes)
+        {
+            var pairsOrderedByDistance = nodes
+                .GetAllPairCombinations()
+                .Select(nodePairing => (
+                    NodePair: nodePairing,
+                    Distance: nodePairing.Item1.Position.DistanceTo(nodePairing.Item2.Position)
+                ))
+                .OrderBy(x => x.Distance)
+                .Select(x => x.NodePair)
+                .ToList();
+
+            return pairsOrderedByDistance;
         }
 
         [DebuggerDisplay("Position = {Position}, NeighbourCount = {NeighbourCount}")]
