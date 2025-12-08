@@ -22,6 +22,14 @@ namespace AdventOfCodeCommon.Vectors
         public long Dot(Vector3 vector)
             => X * vector.X + Y * vector.Y + Z * vector.Z;
 
+        public double DistanceTo(Vector3 vector)
+        {
+            var dx = X - vector.X;
+            var dy = Y - vector.Y;
+            var dz = Z - vector.Z;
+            return Math.Sqrt(dx * dx + dy * dy + dz * dz);
+        }
+
         public static Vector3 operator +(Vector3 a, Vector3 b) => new()
         {
             X = a.X + b.X,
