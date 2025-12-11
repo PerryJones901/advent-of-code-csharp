@@ -12,7 +12,10 @@ namespace AdventOfCode2025.Days
             var nodes = GetNodes(input);
             var nodePathCounts = new Dictionary<string, long> { { END_NODE, 1 } };
 
-            var pathCount = GetPathCount("you", nodes, nodePathCounts);
+            var pathCount = GetPathCountPart1(
+                "you",
+                nodes,
+                nodePathCounts);
 
             return pathCount.ToString();
         }
@@ -28,17 +31,22 @@ namespace AdventOfCode2025.Days
                 { (END_NODE,  true,  true), 1 }
             };
 
-            var pathCount = GetPathCountPart2("svr", false, false, nodes, nodePathCounts);
+            var pathCount = GetPathCountPart2(
+                "svr",
+                nodes,
+                nodePathCounts,
+                hasVisitedDac: false,
+                hasVisitedFft: false);
 
             return pathCount.ToString();
         }
 
-        private static long GetPathCount(string currentNode, Dictionary<string, List<string>> nodes, Dictionary<string, long> nodePathCounts)
+        private static long GetPathCountPart1(string currentNode, Dictionary<string, List<string>> nodes, Dictionary<string, long> nodePathCounts)
         {
             if (nodePathCounts.TryGetValue(currentNode, out long value))
                 return value;
 
-            var pathCount = nodes[currentNode].Sum(nextNode => GetPathCount(nextNode, nodes, nodePathCounts));
+            var pathCount = nodes[currentNode].Sum(nextNode => GetPathCountPart1(nextNode, nodes, nodePathCounts));
             nodePathCounts.Add(currentNode, pathCount);
 
             return pathCount;
@@ -46,10 +54,10 @@ namespace AdventOfCode2025.Days
 
         private static long GetPathCountPart2(
             string currentNode,
-            bool hasVisitedDac,
-            bool hasVisitedFft,
             Dictionary<string, List<string>> nodes,
-            Dictionary<(string, bool, bool), long> nodePathCounts)
+            Dictionary<(string, bool, bool), long> nodePathCounts,
+            bool hasVisitedDac,
+            bool hasVisitedFft)
         {
             var newHasVisitedDac = hasVisitedDac || currentNode == "dac";
             var newHasVisitedFft = hasVisitedFft || currentNode == "fft";
@@ -57,7 +65,7 @@ namespace AdventOfCode2025.Days
             if (nodePathCounts.TryGetValue((currentNode, newHasVisitedDac, newHasVisitedFft), out long value))
                 return value;
 
-            var pathCount = nodes[currentNode].Sum(nextNode => GetPathCountPart2(nextNode, newHasVisitedDac, newHasVisitedFft, nodes, nodePathCounts));
+            var pathCount = nodes[currentNode].Sum(nextNode => GetPathCountPart2(nextNode, nodes, nodePathCounts, newHasVisitedDac, newHasVisitedFft));
             nodePathCounts.Add((currentNode, newHasVisitedDac, newHasVisitedFft), pathCount);
 
             return pathCount;
