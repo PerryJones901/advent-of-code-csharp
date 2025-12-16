@@ -8,19 +8,12 @@ namespace AdventOfCode2025.Days
         public override string Part1()
         {
             var input = GetInput();
-            var coords = input.Select(line => 
-                (int.Parse(line.Split(',')[0]), int.Parse(line.Split(',')[1])
-            )).ToList();
+            var coords = GetCoords(input);
 
-            var maxArea = 0L;
-
-            foreach (var (coords0, coords1) in coords.GetAllPairCombinations())
-            {
-                var area = GetAreaOfRectangle(coords0, coords1);
-
-                if (area > maxArea)
-                    maxArea = area;
-            }
+            var maxArea = coords
+                .GetAllPairCombinations()
+                .Select(pair => GetAreaOfRectangle(pair.Item1, pair.Item2))
+                .Max();
 
             return maxArea.ToString();
         }
@@ -37,55 +30,76 @@ namespace AdventOfCode2025.Days
             // Step 6: Once we've found a valid rectangle, return its area
 
             var input = GetInput();
-            var coords = input.Select(line =>
-                (int.Parse(line.Split(',')[0]), int.Parse(line.Split(',')[1])
-            )).ToList();
+            var coords = GetCoords(input);
 
-            var pairsOfPoints = coords.GetAllPairCombinations().OrderByDescending(pair =>
-            {
-                var (coords0, coords1) = pair;
-                return GetAreaOfRectangle(coords0, coords1);
-            }).ToList();
+            var pairsOfPoints = coords
+                .GetAllPairCombinations()
+                .OrderByDescending(pair => GetAreaOfRectangle(pair.Item1, pair.Item2));
 
-            var polygonEdges = coords
-                .Select((point, index) => (point, coords[(index + 1) % coords.Count]))
-                .ToList();
+            var polygonEdges = GetEdges(coords);
 
             foreach (var pair in pairsOfPoints)
             {
-                var (rectPoint1, rectPoint2) = pair;
+                var (firstRectanglePoint, secondRectanglePoint) = pair;
                 bool edgesIntersect = polygonEdges.Any(edge =>
-                    DoEdgesIntersect(rectPoint1, rectPoint2, edge.Item1, edge.Item2)
+                    DoEdgesIntersect(
+                        firstRectanglePoint, 
+                        secondRectanglePoint,
+                        edge.First, 
+                        edge.Second)
                 );
+
                 if (edgesIntersect)
                     continue;
 
-                // Check that one of the corners is inside the polygon
-                var testRayStart = (Math.Min(rectPoint1.Item1, rectPoint2.Item1) + 1, Math.Min(rectPoint1.Item2, rectPoint2.Item2) + 1);
-                // I.e. test point is * in the diagram below:
+                // To check 'insideness', take the top-left corner of the rectangle's interior and cast a ray to the right
+                // I.e. the ray is *~~~>* in the diagram below:
                 // +----------------+
-                // |*               |
+                // |*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~>*
                 // |                |
                 // |                |
                 // +----------------+
-                var testRayEnd = (int.MaxValue, testRayStart.Item2);
-                // I.e. the test ray is ~~~~> in the diagram below:
-                // +----------------+
-                // |*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~>
-                // |                |
-                // |                |
-                // +----------------+
-                if (polygonEdges.Count(edge =>
-                        DoEdgesIntersect(testRayStart, testRayEnd, edge.Item1, edge.Item2)
-                ) % 2 == 1)
+
+                var rayStartPoint = (
+                    Math.Min(firstRectanglePoint.Item1, secondRectanglePoint.Item1) + 1, 
+                    Math.Min(firstRectanglePoint.Item2, secondRectanglePoint.Item2) + 1);
+
+                var rayEndPoint = (int.MaxValue, rayStartPoint.Item2);
+                var rayIntersectCount = polygonEdges
+                        .Count(edge =>
+                            DoEdgesIntersect(
+                                rayStartPoint,
+                                rayEndPoint,
+                                edge.First,
+                                edge.Second));
+
+                var isInside = rayIntersectCount % 2 == 1;
+
+                if (isInside)
                 {
-                    var area = GetAreaOfRectangle(rectPoint1, rectPoint2);
+                    var area = GetAreaOfRectangle(firstRectanglePoint, secondRectanglePoint);
                     return area.ToString();
                 }
             }
 
             throw new InvalidOperationException("No valid rectangle found");
         }
+
+        private static IList<(int, int)> GetCoords(string[] input)
+            => [.. input.Select(line =>
+                (
+                    int.Parse(line.Split(',')[0]),
+                    int.Parse(line.Split(',')[1])
+                )
+            )];
+
+        private static IList<((int, int) First, (int, int) Second)> GetEdges(IList<(int, int)> coords)
+            => [.. coords
+                .Zip(
+                    coords
+                    .Skip(1)
+                    .Concat(coords.Take(1)))
+            ];
 
         private static long GetAreaOfRectangle((int, int) point1, (int, int) point2)
         {
@@ -94,27 +108,31 @@ namespace AdventOfCode2025.Days
             return xLength * yLength;
         }
 
-        private static bool DoEdgesIntersect((int, int) rectPoint1, (int, int) rectPoint2, (int, int) edgePoint1, (int, int) edgePoint2)
+        private static bool DoEdgesIntersect(
+            (int, int) firstRectanglePoint,
+            (int, int) secondRectanglePoint,
+            (int, int) firstEdgePoint,
+            (int, int) secondEdgePoint)
         {
-            int rectXMin = Math.Min(rectPoint1.Item1, rectPoint2.Item1);
-            int rectXMax = Math.Max(rectPoint1.Item1, rectPoint2.Item1);
-            int rectYMin = Math.Min(rectPoint1.Item2, rectPoint2.Item2);
-            int rectYMax = Math.Max(rectPoint1.Item2, rectPoint2.Item2);
+            int rectXMin = Math.Min(firstRectanglePoint.Item1, secondRectanglePoint.Item1);
+            int rectXMax = Math.Max(firstRectanglePoint.Item1, secondRectanglePoint.Item1);
+            int rectYMin = Math.Min(firstRectanglePoint.Item2, secondRectanglePoint.Item2);
+            int rectYMax = Math.Max(firstRectanglePoint.Item2, secondRectanglePoint.Item2);
 
             // Assume that edges are axis-aligned
-            if (edgePoint1.Item1 == edgePoint2.Item1)
+            if (firstEdgePoint.Item1 == secondEdgePoint.Item1)
             {
                 // Vertical edge
-                int x = edgePoint1.Item1;
-                int yMin = Math.Min(edgePoint1.Item2, edgePoint2.Item2);
-                int yMax = Math.Max(edgePoint1.Item2, edgePoint2.Item2);
+                int x = firstEdgePoint.Item1;
+                int yMin = Math.Min(firstEdgePoint.Item2, secondEdgePoint.Item2);
+                int yMax = Math.Max(firstEdgePoint.Item2, secondEdgePoint.Item2);
                 return (rectXMin < x && x < rectXMax && yMin < rectYMax && rectYMin < yMax);
             }
 
             // Horizontal edge
-            int y = edgePoint1.Item2;
-            int xMin = Math.Min(edgePoint1.Item1, edgePoint2.Item1);
-            int xMax = Math.Max(edgePoint1.Item1, edgePoint2.Item1);
+            int y = firstEdgePoint.Item2;
+            int xMin = Math.Min(firstEdgePoint.Item1, secondEdgePoint.Item1);
+            int xMax = Math.Max(firstEdgePoint.Item1, secondEdgePoint.Item1);
 
             return (rectYMin < y && y < rectYMax && xMin < rectXMax && rectXMin < xMax);
         }
