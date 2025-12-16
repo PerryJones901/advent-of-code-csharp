@@ -9,5 +9,13 @@
 
             dictionary[key] += amount;
         }
+
+        public static void AddOrAppend<T, U>(this IDictionary<T, IList<U>> dictionary, T key, U value)
+        {
+            if (!dictionary.ContainsKey(key))
+                dictionary[key] = new List<U>();
+
+            dictionary[key].Add(value);
+        }
     }
 }
