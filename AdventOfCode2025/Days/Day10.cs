@@ -1,4 +1,4 @@
-﻿using AdventOfCodeCommon;
+using AdventOfCodeCommon;
 using AdventOfCodeCommon.Extensions;
 
 namespace AdventOfCode2025.Days
@@ -95,18 +95,9 @@ namespace AdventOfCode2025.Days
         }
 
         private static int GetLightNumberFromJoltages(int[] joltages)
-        {
-            var lightNumber = 0;
-            for (int i = 0; i < joltages.Length; i++)
-            {
-                var isOdd = joltages[i] % 2 == 1;
-
-                if (isOdd)
-                    lightNumber |= 1 << i;
-            }
-
-            return lightNumber;
-        }
+            => joltages
+                .Select((joltage, index) => joltage % 2 == 1 ? 1 << index : 0)
+                .Aggregate((a, c) => a | c);
 
         private static int GetButtonNumberFromRoundBracketString(string roundBracketString)
             => roundBracketString
@@ -219,12 +210,17 @@ namespace AdventOfCode2025.Days
                     continue;
 
                 newJoltages = [.. newJoltages.Select(j => j / 2)];
-
-                var pressCount = buttonCount + (2 * GetPressCount(
+                
+                var subPressCount = GetPressCount(
                     newJoltages,
                     buttonNumbers,
                     lightNumToButtonInclusionNumMap,
-                    cache));
+                    cache);
+
+                if (subPressCount == int.MaxValue)
+                    continue;
+
+                var pressCount = buttonCount + 2*subPressCount;
 
                 if (pressCount < minPressCount)
                     minPressCount = pressCount;
