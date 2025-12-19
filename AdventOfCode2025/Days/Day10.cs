@@ -109,28 +109,17 @@ namespace AdventOfCode2025.Days
         public override string Part2()
         {
             var input = GetInput();
+            var machines = GetMachines(input);
 
             var buttonPresses = 0;
 
-            foreach(var line in input)
+            foreach (var machine in machines)
             {
-                var elements = line.Split(' ');
-                var joltages = GetJoltagesFromCurlyBracketString(elements.Last());
-                var bitCount = joltages.Length;
-
-                var buttonNumbers = elements
-                    .Skip(1)
-                    .SkipLast(1)
-                    .Select(GetButtonNumberFromRoundBracketString)
-                    .ToArray();
+                var joltages = machine.Joltages;
+                var buttonNumbers = machine.ButtonNumbers;
 
                 var lightNumToInclusionNumMap = GetLightNumberToButtonInclusionNumbersMap(buttonNumbers);
-                var emptyJoltagesCacheKey = GetCacheKey([.. Enumerable.Repeat(0, joltages.Length)]);
-
-                var cache = new Dictionary<string, int>
-                {
-                    { emptyJoltagesCacheKey, 0 }
-                };
+                var cache = GetInitialCache(joltages.Length);
 
                 var buttonPressCountForLine = GetPressCount(
                     joltages,
@@ -243,6 +232,12 @@ namespace AdventOfCode2025.Days
 
             return map;
         }
+
+        private static Dictionary<string, int> GetInitialCache(int machineSize)
+            => new()
+            {
+                { GetCacheKey([.. Enumerable.Repeat(0, machineSize)]), 0 }
+            };
 
         private static string GetCacheKey(int[] joltages) => string.Join(",", joltages);
 
