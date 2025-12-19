@@ -1,4 +1,4 @@
-using AdventOfCodeCommon;
+﻿using AdventOfCodeCommon;
 using AdventOfCodeCommon.Extensions;
 
 namespace AdventOfCode2025.Days
@@ -8,30 +8,20 @@ namespace AdventOfCode2025.Days
         public override string Part1()
         {
             var input = GetInput();
-            var buttonPressCount = 0;
+            var machines = GetMachines(input);
 
-            foreach (var line in input)
-            {
-                var elements = line.Split(' ');
-                var bitCount = elements.Length - 2;
-
-                var lightNumber = GetLightNumberFromSquareBracketString(elements.First());
-
-                var buttonNumbers = elements
-                    .Skip(1)
-                    .SkipLast(1)
-                    .Select(GetButtonNumberFromRoundBracketString)
-                    .ToArray();
-
-                buttonPressCount += GetButtonPressCount(lightNumber, buttonNumbers, bitCount);
-            }
+            var buttonPressCount = machines.Sum(machine =>
+                GetButtonPressCount(
+                    machine.LightNumber,
+                    machine.ButtonNumbers));
 
             return buttonPressCount.ToString();
         }
 
-        private static int GetButtonPressCount(int lightNumber, int[] buttonNumbers, int bitCount)
+        private static int GetButtonPressCount(int lightNumber, int[] buttonNumbers)
         {
             var buttonPressCount = 0;
+            var bitCount = buttonNumbers.Length;
 
             for (int i = 1; i <= bitCount; i++)
             {
@@ -118,8 +108,6 @@ namespace AdventOfCode2025.Days
 
         public override string Part2()
         {
-            // TOO LOW: 10617
-            // TOO LOW: 12000
             var input = GetInput();
 
             var buttonPresses = 0;
@@ -257,6 +245,34 @@ namespace AdventOfCode2025.Days
         }
 
         private static string GetCacheKey(int[] joltages) => string.Join(",", joltages);
+
+        private static List<Machine> GetMachines(string[] input)
+        {
+            var inputLineInfos = new List<Machine>();
+            foreach (var line in input)
+            {
+                var elements = line.Split(' ');
+
+                var squareBracketString = elements.First();
+                var roundBracketStrings = elements.Skip(1).SkipLast(1);
+                var curlyBracketString = elements.Last();
+
+                inputLineInfos.Add(new Machine
+                {
+                    LightNumber = GetLightNumberFromSquareBracketString(squareBracketString),
+                    ButtonNumbers = [.. roundBracketStrings.Select(GetButtonNumberFromRoundBracketString)],
+                    Joltages = GetJoltagesFromCurlyBracketString(curlyBracketString),
+                });
+            }
+            return inputLineInfos;
+        }
+
+        private class Machine
+        {
+            public int LightNumber { get; init; }
+            public int[] ButtonNumbers { get; init; } = [];
+            public int[] Joltages { get; init; } = [];
+        }
 
         private string[] GetInput()
             => FileInputAssistant.GetStringArrayFromFile(TextInputFilePath);
