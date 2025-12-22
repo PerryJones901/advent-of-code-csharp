@@ -14,6 +14,7 @@ namespace AdventOfCode2025.Days
 
             var lowerBound = 0;
             var upperBound = 0;
+
             foreach (var regionPuzzle in regionPuzzles)
             {
                 var lowestMult3Width = (regionPuzzle.Width / 3) * 3;
@@ -24,18 +25,14 @@ namespace AdventOfCode2025.Days
 
                 var totalShapesInPuzzle = regionPuzzle.ShapeCounts.Sum();
                 if (totalShapesInPuzzle <= maxLazy3x3Shapes)
-                {
                     lowerBound++;
-                }
 
                 var totalSquaresCoveredByShapesInPuzzle = regionPuzzle.ShapeCounts
                     .Select((count, index) => count * shapes[index].Sum(x => x.Count(y => y == '#')))
                     .Sum();
 
                 if (totalSquaresCoveredByShapesInPuzzle <= regionPuzzle.Width * regionPuzzle.Height)
-                {
                     upperBound++;
-                }
             }
 
             var output = $"Lower bound: {lowerBound}. Upper bound: {upperBound}.";
@@ -54,7 +51,7 @@ namespace AdventOfCode2025.Days
                     .ToArray())
                 .ToArray();
 
-        private RegionPuzzle[] GetRegionPuzzles(string[] input)
+        private IEnumerable<RegionPuzzle> GetRegionPuzzles(string[] input)
             => input
                 .Last()
                 .Split(NEW_LINE_SEPARATOR)
@@ -65,16 +62,14 @@ namespace AdventOfCode2025.Days
                     ShapeCounts = line
                         .Split(": ")[1]
                         .Split(' ')
-                        .Select(int.Parse)
-                        .ToArray(),
-                })
-                .ToArray();
+                        .Select(int.Parse),
+                });
 
         private class RegionPuzzle
         {
             public int Width { get; set; }
             public int Height { get; set; }
-            public int[] ShapeCounts { get; set; } = [];
+            public IEnumerable<int> ShapeCounts { get; set; } = [];
         }
 
         private string[] GetInput()
