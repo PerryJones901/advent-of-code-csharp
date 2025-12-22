@@ -12,30 +12,29 @@ namespace AdventOfCode2025.Days
             var shapes = GetShapes(input);
             var regionPuzzles = GetRegionPuzzles(input);
 
-            var lowerBound = 0;
-            var upperBound = 0;
+            var lowerBoundRegionCount = 0;
+            var upperBoundRegionCount = 0;
 
             foreach (var regionPuzzle in regionPuzzles)
             {
-                var lowestMult3Width = (regionPuzzle.Width / 3) * 3;
-                var lowestMult3Height = (regionPuzzle.Height / 3) * 3;
+                var highestMultipleOf3Width = (regionPuzzle.Width / 3) * 3;
+                var highestMultipleOf3Height = (regionPuzzle.Height / 3) * 3;
 
-                var areaCoveredBy3x3Shapes = lowestMult3Width * lowestMult3Height;
-                var maxLazy3x3Shapes = areaCoveredBy3x3Shapes / 9;
+                var areaCoveredBy3x3Squares = highestMultipleOf3Width * highestMultipleOf3Height;
+                var total3x3SquareCount = areaCoveredBy3x3Squares / (3*3);
 
-                var totalShapesInPuzzle = regionPuzzle.ShapeCounts.Sum();
-                if (totalShapesInPuzzle <= maxLazy3x3Shapes)
-                    lowerBound++;
+                if (regionPuzzle.ShapeCounts.Sum() <= total3x3SquareCount)
+                    lowerBoundRegionCount++;
 
-                var totalSquaresCoveredByShapesInPuzzle = regionPuzzle.ShapeCounts
+                var totalCellsCoveredByShapesInPuzzle = regionPuzzle.ShapeCounts
                     .Select((count, index) => count * shapes[index].Sum(x => x.Count(y => y == '#')))
                     .Sum();
 
-                if (totalSquaresCoveredByShapesInPuzzle <= regionPuzzle.Width * regionPuzzle.Height)
-                    upperBound++;
+                if (totalCellsCoveredByShapesInPuzzle <= regionPuzzle.Width * regionPuzzle.Height)
+                    upperBoundRegionCount++;
             }
 
-            var output = $"Lower bound: {lowerBound}. Upper bound: {upperBound}.";
+            var output = $"Lower bound: {lowerBoundRegionCount}. Upper bound: {upperBoundRegionCount}.";
 
             return output.ToString();
         }
