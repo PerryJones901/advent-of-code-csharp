@@ -7,16 +7,19 @@ namespace AdventOfCode2015.Days
         public override string Part1()
         {
             var input = GetInput();
-            var lightGrid = Enumerable.Range(0, 1000).Select(_ => GetBoolArray()).ToArray();
+            var lightGrid = Enumerable
+                .Range(0, 1000)
+                .Select(_ => GetBoolArray())
+                .ToArray();
 
             foreach (var inputLine in input)
             {
                 var modifierType = GetModifierType(inputLine);
                 var regionCorners = GetRegionCorners(inputLine);
 
-                for (int row = regionCorners.Item1.Item1; row <= regionCorners.Item2.Item1; row++)
+                for (int row = regionCorners.First.Row; row <= regionCorners.Second.Row; row++)
                 {
-                    for (int col = regionCorners.Item1.Item2; col <= regionCorners.Item2.Item2; col++)
+                    for (int col = regionCorners.First.Col; col <= regionCorners.Second.Col; col++)
                     {
                         lightGrid[row][col] = modifierType switch
                         {
@@ -29,7 +32,9 @@ namespace AdventOfCode2015.Days
                 }
             }
 
-            var lightOnCount = lightGrid.Sum(x => x.Count(x => x));
+            var lightOnCount = lightGrid
+                .Sum(x => x
+                    .Count(x => x));
 
             return lightOnCount.ToString();
         }
@@ -37,16 +42,19 @@ namespace AdventOfCode2015.Days
         public override string Part2()
         {
             var input = GetInput();
-            var lightGrid = Enumerable.Range(0, 1000).Select(_ => GetIntArray()).ToArray();
+            var lightGrid = Enumerable
+                .Range(0, 1000)
+                .Select(_ => GetIntArray())
+                .ToArray();
 
             foreach (var inputLine in input)
             {
                 var modifierType = GetModifierType(inputLine);
                 var regionCorners = GetRegionCorners(inputLine);
 
-                for (int row = regionCorners.Item1.Item1; row <= regionCorners.Item2.Item1; row++)
+                for (int row = regionCorners.First.Row; row <= regionCorners.Second.Row; row++)
                 {
-                    for (int col = regionCorners.Item1.Item2; col <= regionCorners.Item2.Item2; col++)
+                    for (int col = regionCorners.First.Col; col <= regionCorners.Second.Col; col++)
                     {
                         lightGrid[row][col] = modifierType switch
                         {
@@ -59,7 +67,9 @@ namespace AdventOfCode2015.Days
                 }
             }
 
-            var brightnessLevel = lightGrid.Sum(x => x.Sum(x => (long)x));
+            var brightnessLevel = lightGrid
+                .Sum(x => x
+                    .Sum(x => (long)x));
 
             return brightnessLevel.ToString();
         }
@@ -68,28 +78,33 @@ namespace AdventOfCode2015.Days
         {
             if (inputLine.StartsWith("turn on"))
                 return ModifierType.On;
-
-            if (inputLine.StartsWith("turn off"))
+            else if (inputLine.StartsWith("turn off"))
                 return ModifierType.Off;
-
-            if (inputLine.StartsWith("toggle"))
+            else if (inputLine.StartsWith("toggle"))
                 return ModifierType.Toggle;
 
             throw new Exception("Couldn't get modifier type");
         }
 
-        private static ((int, int), (int, int)) GetRegionCorners(string inputLine)
+        private static ((int Row, int Col) First, (int Row, int Col) Second) GetRegionCorners(string inputLine)
         {
             var splitOnSpaces = inputLine.Split(' ');
             var partCount = splitOnSpaces.Length;
 
-            var firstCornerCoords = splitOnSpaces[partCount - 3].Split(',').Select(int.Parse).ToList();
-            var secondCornerCoords = splitOnSpaces[partCount - 1].Split(',').Select(int.Parse).ToList();
+            var firstCornerCoords = GetCoordsFromString(splitOnSpaces[partCount - 3]);
+            var secondCornerCoords = GetCoordsFromString(splitOnSpaces[partCount - 1]);
 
-            return (
-                (firstCornerCoords[0], firstCornerCoords[1]),
-                (secondCornerCoords[0], secondCornerCoords[1])
-            );
+            return (firstCornerCoords, secondCornerCoords);
+        }
+
+        private static (int Row, int Col) GetCoordsFromString(string coordsString)
+        {
+            var parts = coordsString
+                .Split(',')
+                .Select(int.Parse)
+                .ToList();
+
+            return (parts[0], parts[1]);
         }
 
         private enum ModifierType
