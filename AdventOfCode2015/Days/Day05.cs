@@ -12,22 +12,11 @@ namespace AdventOfCode2015.Days
             "ab", "cd", "pq", "xy"
         ];
 
-        public override string Part1()
-        {
-            var input = GetInput();
-            var niceCount = input.Count(IsNice);
+        public override string Part1() => GetInput().Count(IsNicePart1).ToString();
 
-            return niceCount.ToString();
-        }
+        public override string Part2() => GetInput().Count(IsNicePart2).ToString();
 
-        public override string Part2()
-        {
-            var input = GetInput();
-
-            return "Part 2";
-        }
-
-        private static bool IsNice(string word)
+        private static bool IsNicePart1(string word)
         {
             char? prevChar = null;
             var vowelCount = 0;
@@ -57,6 +46,31 @@ namespace AdventOfCode2015.Days
             }
 
             var isNice = !hasBannedSubString && vowelCount >= 3 && hasDoubleLetter;
+
+            return isNice;
+        }
+
+        private static bool IsNicePart2(string word)
+        {
+            var hasRepeatingPair = false;
+            var hasRepeatingLetterWithOneBetween = false;
+
+            for (var charIndex = 0; charIndex < word.Length - 2; charIndex++)
+            {
+                var pair = word.Substring(charIndex, 2);
+                var restOfString = word[(charIndex + 2)..];
+
+                if (restOfString.Contains(pair))
+                    hasRepeatingPair = true;
+
+                var currentChar = word[charIndex];
+                var currentCharTwoAhead = word[charIndex + 2];
+
+                if (currentChar == currentCharTwoAhead)
+                    hasRepeatingLetterWithOneBetween = true;
+            }
+
+            var isNice = hasRepeatingPair && hasRepeatingLetterWithOneBetween;
 
             return isNice;
         }
